@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NoGirr — Zero Hunger Platform | Food Donation & Health Tracker</title>
+  <meta name="description" content="NoGirr is a community-driven food donation platform with real-time tracking, calorie monitoring, and personalized diet plans. Join the zero hunger movement."/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/landing.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍀</text></svg>"/>
+</head>
+<body>
+
+<!-- ════ SPLASH SCREEN ════ -->
+<div id="splash" onclick="skipSplash()">
+<style>
+#splash{position:fixed;inset:0;z-index:99999;background:#050510;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;font-family:'Outfit',sans-serif;}
+.sp-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(124,58,237,0.08) 1px,transparent 1px),linear-gradient(90deg,rgba(124,58,237,0.08) 1px,transparent 1px);background-size:55px 55px;animation:spGridFade 3.8s ease forwards;}
+@keyframes spGridFade{0%,50%{opacity:1}100%{opacity:0}}
+.sp-orb{position:absolute;border-radius:50%;filter:blur(90px);animation:spOrbPulse 2.2s ease-in-out infinite alternate;}
+.sp-orb1{width:500px;height:500px;background:rgba(124,58,237,0.35);top:-150px;left:-150px;}
+.sp-orb2{width:380px;height:380px;background:rgba(244,63,94,0.25);bottom:-100px;right:-80px;animation-delay:.6s;}
+.sp-orb3{width:300px;height:300px;background:rgba(16,185,129,0.2);bottom:80px;left:25%;animation-delay:1.1s;}
+@keyframes spOrbPulse{from{transform:scale(1);opacity:.6}to{transform:scale(1.25);opacity:1}}
+.sp-ring{position:absolute;border-radius:50%;border:1px solid rgba(124,58,237,0.4);animation:spRingExpand 2.5s ease-out forwards;}
+.sp-ring:nth-child(1){width:220px;height:220px;animation-delay:.1s;}
+.sp-ring:nth-child(2){width:400px;height:400px;animation-delay:.4s;}
+.sp-ring:nth-child(3){width:600px;height:600px;animation-delay:.7s;}
+.sp-ring:nth-child(4){width:820px;height:820px;animation-delay:1s;}
+@keyframes spRingExpand{0%{transform:scale(0);opacity:.9}100%{transform:scale(1.3);opacity:0}}
+.sp-scan{position:absolute;left:-100%;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(124,58,237,0.9),rgba(244,63,94,0.9),transparent);animation:spScan 1.2s ease-in-out forwards;animation-delay:.7s;opacity:0;}
+@keyframes spScan{0%{opacity:0;left:-100%}40%{opacity:1}100%{opacity:0;left:100%}}
+.sp-logo{font-size:clamp(4.5rem,11vw,9rem);font-weight:900;letter-spacing:-.02em;position:relative;z-index:2;line-height:1;}
+.sp-logo span{display:inline-block;opacity:0;animation:spLetterIn .7s cubic-bezier(.34,1.56,.64,1) forwards;}
+.sp-logo span:nth-child(1){animation-delay:.25s;color:#fff;}
+.sp-logo span:nth-child(2){animation-delay:.4s;color:#fff;}
+.sp-logo span:nth-child(3){animation-delay:.55s;color:#f43f5e;}
+.sp-logo span:nth-child(4){animation-delay:.7s;color:#f43f5e;}
+.sp-logo span:nth-child(5){animation-delay:.85s;color:#7c3aed;}
+.sp-logo span:nth-child(6){animation-delay:1s;color:#7c3aed;}
+@keyframes spLetterIn{from{opacity:0;transform:translateY(50px) scale(.4) rotate(-15deg)}to{opacity:1;transform:none}}
+.sp-tagline{font-size:.95rem;letter-spacing:.35em;text-transform:uppercase;color:rgba(255,255,255,.45);opacity:0;animation:spFadeUp .8s ease forwards;animation-delay:1.35s;margin-top:14px;}
+@keyframes spFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.sp-dots{display:flex;gap:8px;margin-top:32px;justify-content:center;opacity:0;animation:spFadeUp .6s ease forwards;animation-delay:1.6s;}
+.sp-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.2);animation:spDotPulse 1.2s ease-in-out infinite alternate;}
+.sp-dot:nth-child(1){background:#7c3aed;animation-delay:0s;}
+.sp-dot:nth-child(2){background:#f43f5e;animation-delay:.2s;}
+.sp-dot:nth-child(3){background:#10b981;animation-delay:.4s;}
+.sp-dot:nth-child(4){background:#f59e0b;animation-delay:.6s;}
+.sp-dot:nth-child(5){animation-delay:.8s;}
+@keyframes spDotPulse{from{transform:scale(1)}to{transform:scale(1.8)}}
+.sp-particle{position:absolute;font-size:1.6rem;opacity:0;animation:spFloat 3.5s ease-out forwards;}
+@keyframes spFloat{0%{opacity:0;transform:translateY(80px) scale(0) rotate(0)}15%{opacity:.9}85%{opacity:.6}100%{opacity:0;transform:translateY(-180px) scale(1.1) rotate(20deg)}}
+.sp-bar-wrap{position:absolute;bottom:52px;left:50%;transform:translateX(-50%);width:220px;text-align:center;}
+.sp-bar-track{height:2px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;}
+.sp-bar-fill{height:100%;width:0;background:linear-gradient(90deg,#7c3aed,#f43f5e,#10b981);border-radius:4px;animation:spProgress 3s cubic-bezier(.4,0,.2,1) forwards;animation-delay:.4s;}
+@keyframes spProgress{to{width:100%}}
+.sp-pct{font-size:.7rem;color:rgba(255,255,255,.3);margin-top:8px;font-weight:700;letter-spacing:.05em;}
+.sp-skip-label{position:absolute;bottom:16px;font-size:.65rem;color:rgba(255,255,255,.2);letter-spacing:.15em;text-transform:uppercase;}
+.sp-exit{animation:spExitAnim .55s ease forwards!important;}
+@keyframes spExitAnim{to{opacity:0;transform:scale(1.04)}}
+</style>
+  <div class="sp-grid"></div>
+  <div class="sp-orb sp-orb1"></div>
+  <div class="sp-orb sp-orb2"></div>
+  <div class="sp-orb sp-orb3"></div>
+  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+    <div class="sp-ring"></div>
+    <div class="sp-ring"></div>
+    <div class="sp-ring"></div>
+    <div class="sp-ring"></div>
+  </div>
+  <div class="sp-scan"></div>
+  <!-- Food particles -->
+  <div class="sp-particle" style="left:8%;bottom:25%;animation-delay:.4s">🍱</div>
+  <div class="sp-particle" style="left:18%;bottom:18%;animation-delay:.8s">🥗</div>
+  <div class="sp-particle" style="left:32%;bottom:12%;animation-delay:.3s">🍛</div>
+  <div class="sp-particle" style="left:50%;bottom:20%;animation-delay:1.1s">🍎</div>
+  <div class="sp-particle" style="left:65%;bottom:15%;animation-delay:.6s">🌮</div>
+  <div class="sp-particle" style="left:78%;bottom:22%;animation-delay:.9s">🥑</div>
+  <div class="sp-particle" style="left:88%;bottom:18%;animation-delay:1.3s">🍕</div>
+  <div class="sp-particle" style="left:42%;bottom:8%;animation-delay:.5s">🫐</div>
+  <div class="sp-particle" style="left:73%;bottom:28%;animation-delay:1.5s">🥕</div>
+  <!-- Center -->
+  <div style="position:relative;z-index:5;text-align:center;">
+    <div class="sp-logo">
+      <span>N</span><span>o</span><span>G</span><span>i</span><span>r</span><span>r</span>
+    </div>
+    <div class="sp-tagline">Zero Hunger &bull; Full Life &bull; One Platform</div>
+    <div class="sp-dots">
+      <div class="sp-dot"></div><div class="sp-dot"></div><div class="sp-dot"></div>
+      <div class="sp-dot"></div><div class="sp-dot"></div>
+    </div>
+  </div>
+  <!-- Progress bar -->
+  <div class="sp-bar-wrap">
+    <div class="sp-bar-track"><div class="sp-bar-fill"></div></div>
+    <div class="sp-pct" id="sp-pct">0%</div>
+  </div>
+  <div class="sp-skip-label">Tap anywhere to skip</div>
+</div>
+
+<!-- ════ NAVBAR ════ -->
+<nav class="navbar" id="navbar">
+  <div class="container navbar-inner">
+    <a href="index.html" class="navbar-logo">No<span style="color:var(--rose-light)">Girr</span></a>
+    <ul class="navbar-nav">
+      <li><a href="#features" class="nav-link">Features</a></li>
+      <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
+      <li><a href="pages/find-food.html" class="nav-link">Find Food</a></li>
+      <li><a href="pages/calorie-tracker.html" class="nav-link">Health</a></li>
+      <li><a href="pages/community.html" class="nav-link">Community</a></li>
+    </ul>
+    <div class="navbar-actions">
+      <div class="lang-switcher" id="langBtn" onclick="cycleLang()" title="Change Language">
+        <i class="fa-solid fa-globe"></i> <span id="langLabel">EN</span>
+      </div>
+      <a href="pages/auth.html" class="btn btn-ghost btn-sm">Login</a>
+      <a href="pages/auth.html" class="btn btn-primary btn-sm">Get Started</a>
+      <div class="hamburger" id="hamburger" onclick="toggleMenu()">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile Menu -->
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#features" onclick="toggleMenu()">Features</a>
+  <a href="#how-it-works" onclick="toggleMenu()">How It Works</a>
+  <a href="pages/find-food.html">Find Food</a>
+  <a href="pages/calorie-tracker.html">Health</a>
+  <a href="pages/community.html">Community</a>
+  <a href="pages/auth.html" class="btn btn-primary w-full text-center mt-4">Get Started</a>
+</div>
+
+<!-- ════ HERO ════ -->
+<section class="hero-section" id="hero">
+  <div class="hero-bg-canvas" id="hero-canvas-wrap">
+    <canvas id="hero-particles"></canvas>
+  </div>
+  <div class="hero-gradient"></div>
+
+  <div class="container hero-inner">
+    <div class="hero-text-block">
+      <div class="section-tag hero-tag animate-on-scroll">
+        <span class="live-dot"></span> Live Platform &bull; Real-Time Tracking
+      </div>
+      <h1 class="hero-title animate-on-scroll" id="hero-title">
+        Share Food,<br/>
+        <span class="text-gradient">Save Lives.</span><br/>
+        Stay Healthy.
+      </h1>
+      <p class="hero-desc animate-on-scroll">
+        NoGirr connects food donors with those in need — within your 5km radius. 
+        Track calories, get AI-powered diet plans, and join a community fighting hunger together.
+      </p>
+      <div class="hero-actions animate-on-scroll">
+        <a href="pages/auth.html" class="btn btn-primary btn-lg">
+          <i class="fa-solid fa-heart"></i> Start Donating
+        </a>
+        <a href="pages/find-food.html" class="btn btn-ghost btn-lg">
+          <i class="fa-solid fa-map-location-dot"></i> Find Food Near Me
+        </a>
+      </div>
+      <div class="hero-stats animate-on-scroll">
+        <div class="hero-stat">
+          <span class="hero-stat-num" data-target="12500">0</span>
+          <span class="hero-stat-label">Meals Donated</span>
+        </div>
+        <div class="hero-stat-divider"></div>
+        <div class="hero-stat">
+          <span class="hero-stat-num" data-target="3800">0</span>
+          <span class="hero-stat-label">Active Donors</span>
+        </div>
+        <div class="hero-stat-divider"></div>
+        <div class="hero-stat">
+          <span class="hero-stat-num" data-target="48">0</span>
+          <span class="hero-stat-label">Cities</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-visual animate-on-scroll">
+      <div class="hero-card-stack">
+        <!-- Floating Dashboard Preview Card -->
+        <div class="preview-card main-card animate-float" style="animation-delay:0s">
+          <div class="preview-header">
+            <div class="preview-avatar">RK</div>
+            <div>
+              <div class="preview-name">Rajan Kumar</div>
+              <div class="preview-role badge badge-emerald"><span class="live-dot"></span> Donating Live</div>
+            </div>
+          </div>
+          <div class="preview-food">
+            <div class="preview-food-icon">🍱</div>
+            <div>
+              <div class="preview-food-name">Biryani (serves 8)</div>
+              <div class="preview-food-meta"><i class="fa-solid fa-location-dot" style="color:var(--rose-light)"></i> 1.2 km away &bull; <span class="badge badge-free" style="font-size:0.65rem">FREE</span></div>
+            </div>
+          </div>
+          <div class="preview-map-mini">
+            <div class="preview-map-dot"></div>
+            <div class="preview-map-pulse"></div>
+            <div class="preview-map-grid"></div>
+            <span class="preview-map-label">Live Location</span>
+          </div>
+          <button class="btn btn-emerald btn-sm w-full" style="justify-content:center;margin-top:12px">
+            <i class="fa-solid fa-route"></i> Navigate Now
+          </button>
+        </div>
+
+        <!-- Calorie Card -->
+        <div class="preview-card calorie-card animate-float" style="animation-delay:0.5s">
+          <div style="font-size:0.8rem;font-weight:700;margin-bottom:12px;font-family:var(--font-main);">Today's Calories</div>
+          <div class="calorie-mini-ring">
+            <svg width="80" height="80" viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="30" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8"/>
+              <circle cx="40" cy="40" r="30" fill="none" stroke="url(#cal-grad)" stroke-width="8"
+                stroke-dasharray="188" stroke-dashoffset="60" stroke-linecap="round"
+                transform="rotate(-90 40 40)"/>
+              <defs>
+                <linearGradient id="cal-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#7c3aed"/>
+                  <stop offset="100%" stop-color="#10b981"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="calorie-mini-text">
+              <span style="font-family:var(--font-main);font-weight:800;font-size:0.9rem">1240</span>
+              <span style="font-size:0.6rem;color:var(--text-muted)">/ 2000</span>
+            </div>
+          </div>
+          <div style="font-size:0.75rem;color:var(--emerald-light);text-align:center;margin-top:8px">✓ On Track</div>
+        </div>
+
+        <!-- Community Card -->
+        <div class="preview-card community-card animate-float" style="animation-delay:1s">
+          <div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:8px">Community</div>
+          <div class="preview-avatars">
+            <div class="avatar avatar-sm" style="background:var(--gradient-purple);position:relative;left:0">A</div>
+            <div class="avatar avatar-sm" style="background:var(--gradient-rose);position:relative;left:-12px">S</div>
+            <div class="avatar avatar-sm" style="background:var(--gradient-emerald);position:relative;left:-24px">M</div>
+            <div class="avatar avatar-sm" style="background:var(--gradient-amber);position:relative;left:-36px">+8</div>
+          </div>
+          <div style="font-size:0.8rem;font-weight:700;margin-top:4px">12 donors nearby</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scroll Indicator -->
+  <div class="scroll-indicator">
+    <div class="scroll-mouse"><div class="scroll-wheel"></div></div>
+    <span>Scroll to explore</span>
+  </div>
+</section>
+
+<!-- ════ FEATURES ════ -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="text-center mb-8">
+      <div class="section-tag" style="display:inline-flex">
+        <i class="fa-solid fa-stars"></i> Platform Features
+      </div>
+      <h2 class="section-title">Everything You Need,<br/><span class="text-gradient">In One Place</span></h2>
+      <p class="section-desc" style="margin:0 auto">From real-time food discovery to personalized health tracking — NoGirr has it all.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card feature-highlight animate-on-scroll">
+        <div class="feature-icon-wrap" style="background:rgba(124,58,237,0.15)">
+          <i class="fa-solid fa-map-location-dot" style="color:var(--purple-light);font-size:1.8rem"></i>
+        </div>
+        <h3>Real-Time Food Map</h3>
+        <p>Find food donations within your 5km radius. Live GPS tracking shows exactly where donors are right now.</p>
+        <div class="feature-tags">
+          <span class="badge badge-purple">Live Tracking</span>
+          <span class="badge badge-cyan">5km Radius</span>
+        </div>
+      </div>
+
+      <div class="feature-card animate-on-scroll" style="animation-delay:0.1s">
+        <div class="feature-icon-wrap" style="background:rgba(16,185,129,0.15)">
+          <i class="fa-solid fa-fire-flame-curved" style="color:var(--emerald-light);font-size:1.8rem"></i>
+        </div>
+        <h3>Calorie Tracker</h3>
+        <p>Log meals from our 10,000+ food database. Track daily intake with beautiful visual charts and analytics.</p>
+        <div class="feature-tags">
+          <span class="badge badge-emerald">10K+ Foods</span>
+          <span class="badge badge-amber">Daily Goals</span>
+        </div>
+      </div>
+
+      <div class="feature-card animate-on-scroll" style="animation-delay:0.2s">
+        <div class="feature-icon-wrap" style="background:rgba(244,63,94,0.15)">
+          <i class="fa-solid fa-heart-pulse" style="color:var(--rose-light);font-size:1.8rem"></i>
+        </div>
+        <h3>AI Diet Plans</h3>
+        <p>Get personalized nutrition plans based on your health profile, goals, and medical conditions.</p>
+        <div class="feature-tags">
+          <span class="badge badge-rose">Personalized</span>
+          <span class="badge badge-purple">AI-Powered</span>
+        </div>
+      </div>
+
+      <div class="feature-card animate-on-scroll" style="animation-delay:0.3s">
+        <div class="feature-icon-wrap" style="background:rgba(6,182,212,0.15)">
+          <i class="fa-solid fa-comments" style="color:var(--cyan);font-size:1.8rem"></i>
+        </div>
+        <h3>Community Hub</h3>
+        <p>Share stories, connect with donors & recipients, rate experiences, and join the hunger-fighting movement.</p>
+        <div class="feature-tags">
+          <span class="badge badge-cyan">Stories</span>
+          <span class="badge badge-emerald">Live Chat</span>
+        </div>
+      </div>
+
+      <div class="feature-card animate-on-scroll" style="animation-delay:0.4s">
+        <div class="feature-icon-wrap" style="background:rgba(245,158,11,0.15)">
+          <i class="fa-solid fa-wallet" style="color:var(--amber-light);font-size:1.8rem"></i>
+        </div>
+        <h3>Secure Payments</h3>
+        <p>Support free donations or paid food listings. Integrated with Razorpay, UPI, and QR code payments.</p>
+        <div class="feature-tags">
+          <span class="badge badge-amber">Razorpay</span>
+          <span class="badge badge-emerald">UPI / QR</span>
+        </div>
+      </div>
+
+      <div class="feature-card animate-on-scroll" style="animation-delay:0.5s">
+        <div class="feature-icon-wrap" style="background:rgba(124,58,237,0.15)">
+          <i class="fa-solid fa-shield-halved" style="color:var(--purple-light);font-size:1.8rem"></i>
+        </div>
+        <h3>Trusted & Verified</h3>
+        <p>All donors are verified. Ratings & reviews ensure safety. Admin oversight for all listings.</p>
+        <div class="feature-tags">
+          <span class="badge badge-purple">Verified</span>
+          <span class="badge badge-rose">Rated</span>
+        </div>
+      </div>
+
+      <div class="feature-card animate-on-scroll" style="animation-delay:0.6s">
+        <div class="feature-icon-wrap" style="background:rgba(16,185,129,0.15)">
+          <i class="fa-solid fa-language" style="color:var(--emerald-light);font-size:1.8rem"></i>
+        </div>
+        <h3>Multilingual</h3>
+        <p>Available in English, Hindi, Tamil, Telugu, and more. Breaking language barriers to fight hunger.</p>
+        <div class="feature-tags">
+          <span class="badge badge-emerald">10+ Languages</span>
+        </div>
+      </div>
+
+      <div class="feature-card animate-on-scroll" style="animation-delay:0.7s">
+        <div class="feature-icon-wrap" style="background:rgba(244,63,94,0.15)">
+          <i class="fa-solid fa-chart-line" style="color:var(--rose-light);font-size:1.8rem"></i>
+        </div>
+        <h3>Health Analytics</h3>
+        <p>Track your health journey with weekly and monthly progress charts. Get actionable improvement tips.</p>
+        <div class="feature-tags">
+          <span class="badge badge-rose">Charts</span>
+          <span class="badge badge-purple">Insights</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ HOW IT WORKS ════ -->
+<section class="section" id="how-it-works" style="background:linear-gradient(180deg,transparent,rgba(124,58,237,0.04),transparent)">
+  <div class="container">
+    <div class="text-center mb-8">
+      <div class="section-tag" style="display:inline-flex">
+        <i class="fa-solid fa-circle-nodes"></i> How It Works
+      </div>
+      <h2 class="section-title">Simple. Fast. <span class="text-gradient">Impactful.</span></h2>
+    </div>
+
+    <div class="steps-container">
+      <div class="steps-line"></div>
+      <div class="steps-grid">
+        <div class="step-card animate-on-scroll">
+          <div class="step-number gradient-purple">01</div>
+          <div class="step-icon"><i class="fa-solid fa-user-plus"></i></div>
+          <h3>Create Profile</h3>
+          <p>Sign up as Donor, Recipient or both. Fill in your health profile for personalized features.</p>
+        </div>
+        <div class="step-card animate-on-scroll" style="animation-delay:0.15s">
+          <div class="step-number gradient-rose">02</div>
+          <div class="step-icon"><i class="fa-solid fa-location-crosshairs"></i></div>
+          <h3>Enable Location</h3>
+          <p>Allow location access to discover food donations within your 5km radius in real time.</p>
+        </div>
+        <div class="step-card animate-on-scroll" style="animation-delay:0.3s">
+          <div class="step-number gradient-emerald">03</div>
+          <div class="step-icon"><i class="fa-solid fa-bowl-food"></i></div>
+          <h3>Donate or Receive</h3>
+          <p>Post a food listing or browse nearby ones. Chat with donors and arrange pickup smoothly.</p>
+        </div>
+        <div class="step-card animate-on-scroll" style="animation-delay:0.45s">
+          <div class="step-number gradient-amber">04</div>
+          <div class="step-icon"><i class="fa-solid fa-seedling"></i></div>
+          <h3>Track & Thrive</h3>
+          <p>Log meals, follow diet plans, monitor health, and watch your positive impact grow.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ LIVE IMPACT ════ -->
+<section class="section" id="impact">
+  <div class="container">
+    <div class="impact-wrapper">
+      <div class="impact-text animate-on-scroll">
+        <div class="section-tag" style="display:inline-flex">
+          <span class="live-dot"></span> Live Impact
+        </div>
+        <h2 class="section-title">Real Numbers,<br/><span class="text-gradient">Real Change</span></h2>
+        <p class="section-desc">Every meal shared is a life touched. See our community's live impact as it grows every single day.</p>
+        <a href="pages/auth.html" class="btn btn-primary mt-6">
+          <i class="fa-solid fa-plus"></i> Join the Movement
+        </a>
+      </div>
+      <div class="impact-stats animate-on-scroll" style="animation-delay:0.2s">
+        <div class="impact-stat-card" style="--accent:var(--purple)">
+          <div class="impact-icon"><i class="fa-solid fa-utensils"></i></div>
+          <div class="impact-number counter" data-target="12584">0</div>
+          <div class="impact-label">Meals Shared</div>
+          <div class="impact-trend">↑ 234 today</div>
+        </div>
+        <div class="impact-stat-card" style="--accent:var(--rose)">
+          <div class="impact-icon"><i class="fa-solid fa-hands-holding-heart"></i></div>
+          <div class="impact-number counter" data-target="3821">0</div>
+          <div class="impact-label">Active Donors</div>
+          <div class="impact-trend">↑ 47 this week</div>
+        </div>
+        <div class="impact-stat-card" style="--accent:var(--emerald)">
+          <div class="impact-icon"><i class="fa-solid fa-people-group"></i></div>
+          <div class="impact-number counter" data-target="9246">0</div>
+          <div class="impact-label">Lives Impacted</div>
+          <div class="impact-trend">↑ 180 this month</div>
+        </div>
+        <div class="impact-stat-card" style="--accent:var(--amber)">
+          <div class="impact-icon"><i class="fa-solid fa-city"></i></div>
+          <div class="impact-number counter" data-target="48">0</div>
+          <div class="impact-label">Cities</div>
+          <div class="impact-trend">↑ 3 new cities</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ TESTIMONIALS ════ -->
+<section class="section" id="testimonials" style="background:linear-gradient(180deg,transparent,rgba(244,63,94,0.03),transparent)">
+  <div class="container">
+    <div class="text-center mb-8">
+      <div class="section-tag" style="display:inline-flex">
+        <i class="fa-solid fa-quote-left"></i> Stories
+      </div>
+      <h2 class="section-title">Voices of <span class="text-gradient">Change</span></h2>
+    </div>
+    <div class="testimonials-grid">
+      <div class="testimonial-card animate-on-scroll">
+        <div class="stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+        <p class="testimonial-text">"NoGirr helped me donate my restaurant's leftover food every day. The live tracking made it so easy for recipients to find me. Incredible platform!"</p>
+        <div class="testimonial-author">
+          <div class="avatar avatar-sm" style="background:var(--gradient-purple)">S</div>
+          <div>
+            <div class="testimonial-name">Suresh Patel</div>
+            <div class="testimonial-role">Restaurant Owner, Mumbai</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card animate-on-scroll" style="animation-delay:0.1s">
+        <div class="stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+        <p class="testimonial-text">"The calorie tracker changed my life. I lost 8kg in 2 months following my personalized diet plan. And I love that every meal I track contributes to a donation!"</p>
+        <div class="testimonial-author">
+          <div class="avatar avatar-sm" style="background:var(--gradient-rose)">P</div>
+          <div>
+            <div class="testimonial-name">Priya Rajan</div>
+            <div class="testimonial-role">Software Engineer, Bangalore</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card animate-on-scroll" style="animation-delay:0.2s">
+        <div class="stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i></div>
+        <p class="testimonial-text">"I was going through a tough time and NoGirr connected me with 3 local donors within minutes. The community support is overwhelming. Thank you!"</p>
+        <div class="testimonial-author">
+          <div class="avatar avatar-sm" style="background:var(--gradient-emerald)">A</div>
+          <div>
+            <div class="testimonial-name">Ananya Sharma</div>
+            <div class="testimonial-role">Student, Chennai</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ CTA BANNER ════ -->
+<section class="cta-section">
+  <div class="cta-bg"></div>
+  <div class="container text-center">
+    <div class="cta-content animate-on-scroll">
+      <div class="section-tag" style="display:inline-flex;margin-bottom:24px">
+        <i class="fa-solid fa-rocket"></i> Start Today — It's Free
+      </div>
+      <h2 style="font-size:clamp(2rem,5vw,3.5rem);font-weight:900;font-family:var(--font-main);margin-bottom:16px">
+        Ready to Make a <span class="text-gradient">Difference?</span>
+      </h2>
+      <p style="color:var(--text-secondary);font-size:1.1rem;max-width:560px;margin:0 auto 40px">
+        Join 9,000+ people already fighting hunger and improving health with NoGirr. 
+        Every meal counts. Every calorie tracked matters.
+      </p>
+      <div class="flex-center gap-4" style="flex-wrap:wrap">
+        <a href="pages/auth.html?role=donor" class="btn btn-primary btn-lg">
+          <i class="fa-solid fa-hand-holding-heart"></i> Become a Donor
+        </a>
+        <a href="pages/auth.html?role=recipient" class="btn btn-emerald btn-lg">
+          <i class="fa-solid fa-bowl-food"></i> Find Food Now
+        </a>
+        <a href="pages/calorie-tracker.html" class="btn btn-ghost btn-lg">
+          <i class="fa-solid fa-dumbbell"></i> Track Health
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ FOOTER ════ -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="navbar-logo" style="font-size:2rem;margin-bottom:12px">No<span style="color:var(--rose-light)">Girr</span></div>
+        <p style="color:var(--text-secondary);font-size:0.9rem;line-height:1.7;max-width:280px">Fighting hunger with technology. Connecting hearts, sharing meals, building healthier communities worldwide.</p>
+        <div class="footer-socials">
+          <a href="#" class="social-link"><i class="fa-brands fa-twitter"></i></a>
+          <a href="#" class="social-link"><i class="fa-brands fa-instagram"></i></a>
+          <a href="#" class="social-link"><i class="fa-brands fa-facebook"></i></a>
+          <a href="#" class="social-link"><i class="fa-brands fa-linkedin"></i></a>
+        </div>
+      </div>
+      <div class="footer-links-col">
+        <h4>Platform</h4>
+        <a href="pages/find-food.html">Find Food</a>
+        <a href="pages/donate.html">Donate Food</a>
+        <a href="pages/calorie-tracker.html">Calorie Tracker</a>
+        <a href="pages/community.html">Community</a>
+        <a href="pages/dashboard.html">Dashboard</a>
+      </div>
+      <div class="footer-links-col">
+        <h4>Company</h4>
+        <a href="#">About Us</a>
+        <a href="#">Our Mission</a>
+        <a href="#">Blog</a>
+        <a href="#">Careers</a>
+        <a href="#">Press</a>
+      </div>
+      <div class="footer-links-col">
+        <h4>Support</h4>
+        <a href="#">Help Center</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">Contact Us</a>
+        <a href="pages/admin.html">Admin Portal</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 NoGirr. Made with <i class="fa-solid fa-heart" style="color:var(--rose-light)"></i> for Zero Hunger.</span>
+      <div class="flex" style="gap:16px;flex-wrap:wrap">
+        <a href="#" style="color:var(--text-muted);font-size:0.8rem">Privacy</a>
+        <a href="#" style="color:var(--text-muted);font-size:0.8rem">Terms</a>
+        <a href="#" style="color:var(--text-muted);font-size:0.8rem">Cookies</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Scripts -->
+<script src="js/app.js"></script>
+<script src="js/landing.js"></script>
+<script>
+  // Animate percentage counter
+  (function(){
+    var el = document.getElementById('sp-pct');
+    if (!el) return;
+    var duration = 3000, start = null;
+    setTimeout(function(){
+      function tick(ts){
+        if (!start) start = ts;
+        var p = Math.min(100, Math.floor(((ts - start) / duration) * 100));
+        el.textContent = p + '%';
+        if (p < 100) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }, 400);
+  })();
+
+  // Skip splash
+  function skipSplash() {
+    var s = document.getElementById('splash');
+    if (!s || s._gone) return;
+    s._gone = true;
+    s.classList.add('sp-exit');
+    setTimeout(function() {
+      s.style.display = 'none';
+      document.body.style.overflow = '';
+      if (typeof initHeroParticles === 'function') initHeroParticles();
+      if (typeof initScrollAnimations === 'function') initScrollAnimations();
+      if (typeof initCounters === 'function') initCounters();
+    }, 560);
+  }
+
+  // Auto-skip after 3.5s
+  setTimeout(skipSplash, 3500);
+</script>
+</body>
+</html>

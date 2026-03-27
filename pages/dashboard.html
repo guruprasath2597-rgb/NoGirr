@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NoGirr — Dashboard</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="stylesheet" href="../css/app.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .activity-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-icon {
+      width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .activity-text { flex: 1; }
+    .activity-title { font-size: 0.875rem; font-weight: 600; }
+    .activity-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+    .activity-time { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
+    .nearby-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px; background: rgba(255,255,255,0.03);
+      border: 1px solid var(--glass-border); border-radius: var(--radius-md);
+      margin-bottom: 10px; transition: var(--transition);
+    }
+    .nearby-item:hover { border-color: rgba(124,58,237,0.3); background: rgba(124,58,237,0.05); }
+    .nearby-emoji { font-size: 2rem; flex-shrink: 0; }
+    .nearby-info { flex: 1; min-width: 0; }
+    .nearby-name { font-weight: 700; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .nearby-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+    .donor-card {
+      background: var(--glass); border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg); padding: 20px;
+      display: flex; align-items: center; gap: 14px; transition: var(--transition);
+    }
+    .donor-card:hover { border-color: rgba(124,58,237,0.3); transform: translateY(-2px); }
+    .health-tip {
+      background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(124,58,237,0.08));
+      border: 1px solid rgba(16,185,129,0.2); border-radius: var(--radius-md);
+      padding: 16px; display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px;
+    }
+    .greeting-banner {
+      background: linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(244,63,94,0.1) 100%);
+      border: 1px solid rgba(124,58,237,0.2); border-radius: var(--radius-xl);
+      padding: 32px; margin-bottom: 28px; position: relative; overflow: hidden;
+    }
+    .greeting-banner::before {
+      content: ''; position: absolute; right: -20px; top: -20px;
+      width: 200px; height: 200px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(124,58,237,0.2), transparent 70%);
+    }
+  </style>
+</head>
+<body>
+<nav class="navbar" id="appNavbar"></nav>
+
+<div class="app-layout">
+  <aside class="sidebar">
+    <nav class="sidebar-nav" id="appSidebar"></nav>
+    <div id="sidebarUser"></div>
+  </aside>
+
+  <main class="main-content">
+    <!-- Greeting Banner -->
+    <div class="greeting-banner">
+      <div style="position:relative;z-index:1">
+        <div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:6px" id="greetTime"></div>
+        <h1 class="page-title" id="greetName" style="margin-bottom:8px;font-size:2rem">Loading...</h1>
+        <p style="color:var(--text-secondary);font-size:0.9rem" id="greetRole"></p>
+        <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap">
+          <a href="donate.html" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> New Donation</a>
+          <a href="find-food.html" class="btn btn-ghost btn-sm"><i class="fa-solid fa-map"></i> Find Food</a>
+          <a href="calorie-tracker.html" class="btn btn-ghost btn-sm"><i class="fa-solid fa-fire"></i> Log Meal</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="dashboard-grid" id="statsGrid"></div>
+
+    <!-- Main Content Row -->
+    <div class="content-row">
+      <!-- Recent Activity -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title"><i class="fa-solid fa-clock-rotate-left" style="color:var(--purple-light)"></i> Recent Activity</div>
+          <a href="#" class="btn btn-ghost btn-sm">View All</a>
+        </div>
+        <div id="activityFeed"></div>
+      </div>
+
+      <!-- Calorie Summary -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title"><i class="fa-solid fa-fire-flame-curved" style="color:var(--rose-light)"></i> Today's Calories</div>
+          <a href="calorie-tracker.html" class="btn btn-ghost btn-sm">Log Meal</a>
+        </div>
+        <div style="display:flex;align-items:center;gap:24px;margin-bottom:24px">
+          <div style="position:relative;flex-shrink:0">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="12"/>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="url(#dashCalGrad)" stroke-width="12"
+                stroke-dasharray="314" stroke-dashoffset="110" stroke-linecap="round"
+                transform="rotate(-90 60 60)" id="calCircle"/>
+              <defs>
+                <linearGradient id="dashCalGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#f43f5e"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center">
+              <div style="font-family:var(--font-main);font-size:1.3rem;font-weight:800" id="calConsumed">1240</div>
+              <div style="font-size:0.65rem;color:var(--text-muted)">of 2000 kcal</div>
+            </div>
+          </div>
+          <div style="flex:1">
+            <div class="macro-row">
+              <div class="macro-label"><div class="macro-dot" style="background:var(--purple-light)"></div>Protein</div>
+              <div class="macro-val">68g</div>
+            </div>
+            <div class="macro-row">
+              <div class="macro-label"><div class="macro-dot" style="background:var(--amber-light)"></div>Carbs</div>
+              <div class="macro-val">145g</div>
+            </div>
+            <div class="macro-row">
+              <div class="macro-label"><div class="macro-dot" style="background:var(--rose-light)"></div>Fat</div>
+              <div class="macro-val">42g</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-bottom:8px;display:flex;justify-content:space-between;font-size:0.8rem">
+          <span style="color:var(--text-secondary)">Daily Goal Progress</span>
+          <span style="color:var(--emerald-light);font-weight:600">62%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill progress-purple" style="width:62%"></div></div>
+        <div style="margin-top:12px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:var(--radius-md);padding:10px;font-size:0.8rem;color:var(--emerald-light)">
+          <i class="fa-solid fa-lightbulb"></i> Great work! 760 kcal remaining. Have a light dinner.
+        </div>
+      </div>
+    </div>
+
+    <!-- Second Row -->
+    <div class="content-row">
+      <!-- Food Near Me -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title"><i class="fa-solid fa-map-location-dot" style="color:var(--emerald-light)"></i> Food Near You</div>
+          <a href="find-food.html" class="btn btn-emerald btn-sm">View Map</a>
+        </div>
+        <div id="nearbyFoodList"></div>
+      </div>
+
+      <!-- Weekly Chart -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title"><i class="fa-solid fa-chart-line" style="color:var(--amber-light)"></i> Weekly Calories</div>
+          <span class="badge badge-emerald">This Week</span>
+        </div>
+        <canvas id="weeklyChart" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Third Row -->
+    <div class="content-row">
+      <!-- Top Donors -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title"><i class="fa-solid fa-trophy" style="color:var(--amber-light)"></i> Top Donors This Week</div>
+        </div>
+        <div id="donorsList"></div>
+      </div>
+
+      <!-- Health Tips -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title"><i class="fa-solid fa-heart-pulse" style="color:var(--rose-light)"></i> Health Tips</div>
+        </div>
+        <div id="healthTips"></div>
+        <div style="margin-top:16px;padding:16px;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.2);border-radius:var(--radius-md)">
+          <div style="font-weight:700;font-size:0.875rem;margin-bottom:6px;font-family:var(--font-main)">🎯 Your Health Goal</div>
+          <div style="font-size:0.8rem;color:var(--text-secondary)">Balanced Nutrition Plan — 2000 kcal/day</div>
+          <a href="calorie-tracker.html" class="btn btn-primary btn-sm" style="margin-top:12px"><i class="fa-solid fa-arrow-right"></i> View Full Plan</a>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="../js/app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  buildNavbar('Dashboard');
+  buildSidebar('Dashboard');
+
+  const user = NoGirr.user || { name: 'Friend', role: 'donor' };
+
+  // Greeting
+  document.getElementById('greetTime').textContent = getGreeting() + ' ☀️';
+  document.getElementById('greetName').textContent = 'Hey, ' + (user.name || 'Friend') + '!';
+  const roleMessages = {
+    donor: '🙏 Thank you for making a difference. You\'ve helped 12 people this month!',
+    recipient: '💚 There are 5 food donations available near you right now.',
+    admin: '🔐 Platform running smoothly. 8 new listings pending verification.',
+  };
+  document.getElementById('greetRole').textContent = roleMessages[user.role] || '';
+
+  // Stats
+  const stats = [
+    { icon:'fa-utensils', label:'Meals Donated', value:'24', change:'+3', up:true, clr:'var(--purple)', bg:'rgba(124,58,237,0.15)' },
+    { icon:'fa-people-group', label:'People Helped', value:'89', change:'+12', up:true, clr:'var(--rose)', bg:'rgba(244,63,94,0.15)' },
+    { icon:'fa-fire-flame-curved', label:'Avg Daily Kcal', value:'1,840', change:'-5%', up:false, clr:'var(--emerald)', bg:'rgba(16,185,129,0.15)' },
+    { icon:'fa-star', label:'Donor Rating', value:'4.9', change:'★★★★★', up:true, clr:'var(--amber)', bg:'rgba(245,158,11,0.15)' },
+  ];
+  const grid = document.getElementById('statsGrid');
+  grid.innerHTML = stats.map(s => `
+    <div class="quick-stat" style="--stat-clr:${s.clr}">
+      <div class="stat-icon-wrap" style="background:${s.bg}">
+        <i class="fa-solid ${s.icon}" style="color:${s.clr}"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" style="color:${s.clr}">${s.value}</div>
+        <div class="stat-name">${s.label}</div>
+      </div>
+      <div class="stat-change ${s.up?'up':'down'}">${s.change}</div>
+    </div>`).join('');
+
+  // Activity
+  const activities = [
+    { icon:'fa-hand-holding-heart', iconBg:'rgba(124,58,237,0.2)', iconClr:'var(--purple-light)', title:'You donated Biryani (10 servings)', sub:'Raj Kumar collected — 1.2km away', time:'2h ago' },
+    { icon:'fa-fire-flame-curved', iconBg:'rgba(244,63,94,0.2)', iconClr:'var(--rose-light)', title:'Logged lunch: Dal Rice + Sambar', sub:'680 kcal • Carbs 45g • Protein 18g', time:'4h ago' },
+    { icon:'fa-star', iconBg:'rgba(245,158,11,0.2)', iconClr:'var(--amber-light)', title:'Received 5★ review from Ananya', sub:'"Amazing food. Thank you so much!"', time:'Yesterday' },
+    { icon:'fa-map-location-dot', iconBg:'rgba(16,185,129,0.2)', iconClr:'var(--emerald-light)', title:'3 new donations within 2km', sub:'Idli & Sambar • Rice • Vegetables', time:'Yesterday' },
+    { icon:'fa-trophy', iconBg:'rgba(245,158,11,0.2)', iconClr:'var(--amber-light)', title:'Ranked #3 Donor in Chennai', sub:'Keep it up! 2 more donations to #1', time:'2 days ago' },
+  ];
+  document.getElementById('activityFeed').innerHTML = activities.map(a => `
+    <div class="activity-item">
+      <div class="activity-icon" style="background:${a.iconBg}"><i class="fa-solid ${a.icon}" style="color:${a.iconClr}"></i></div>
+      <div class="activity-text">
+        <div class="activity-title">${a.title}</div>
+        <div class="activity-sub">${a.sub}</div>
+      </div>
+      <div class="activity-time">${a.time}</div>
+    </div>`).join('');
+
+  // Nearby Food
+  const nearbyFoods = MOCK_DONATIONS.slice(0, 4);
+  document.getElementById('nearbyFoodList').innerHTML = nearbyFoods.map(f => `
+    <div class="nearby-item" onclick="window.location='find-food.html'">
+      <div class="nearby-emoji">${f.emoji}</div>
+      <div class="nearby-info">
+        <div class="nearby-name">${f.name}</div>
+        <div class="nearby-meta"><i class="fa-solid fa-location-dot" style="color:var(--rose-light)"></i> ${f.dist}km · by ${f.donor}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        ${f.free ? '<span class="badge badge-free">FREE</span>' : `<span class="badge badge-paid">₹${f.price}</span>`}
+        ${f.live ? '<span class="live-badge"><span class="live-dot"></span>Live</span>' : ''}
+      </div>
+    </div>`).join('');
+
+  // Weekly Chart
+  const ctx = document.getElementById('weeklyChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+      datasets: [{
+        label: 'Calories',
+        data: [1820, 2100, 1650, 2200, 1940, 1500, 1240],
+        backgroundColor: (ctx) => {
+          const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 300);
+          g.addColorStop(0, 'rgba(124,58,237,0.8)');
+          g.addColorStop(1, 'rgba(244,63,94,0.3)');
+          return g;
+        },
+        borderRadius: 8, borderSkipped: false,
+      }, {
+        label: 'Goal',
+        data: [2000,2000,2000,2000,2000,2000,2000],
+        type: 'line', borderColor: 'rgba(16,185,129,0.5)',
+        borderDash: [5,5], pointRadius: 0, fill: false, tension: 0,
+      }]
+    },
+    options: {
+      responsive: true, plugins: { legend: { display: false },
+        tooltip: { backgroundColor: '#0f0f1a', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, titleColor: '#f1f5f9', bodyColor: '#94a3b8' }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#94a3b8' } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#94a3b8' }, min: 1000 }
+      }
+    }
+  });
+
+  // Top Donors
+  const donors = [
+    { name:'Suresh Patel', meals:48, avatar:'S', bg:'var(--gradient-purple)', badge:'🥇' },
+    { name:'Ananya NGO', meals:35, avatar:'A', bg:'var(--gradient-emerald)', badge:'🥈' },
+    { name:'You', meals:24, avatar:user.name[0], bg:'var(--gradient-rose)', badge:'🥉' },
+    { name:'Priya Store', meals:19, avatar:'P', bg:'var(--gradient-amber)', badge:'4' },
+  ];
+  document.getElementById('donorsList').innerHTML = donors.map((d,i) => `
+    <div class="donor-card" style="margin-bottom:10px">
+      <div style="font-family:var(--font-main);font-weight:800;font-size:1.1rem;width:28px;color:var(--text-muted)">${d.badge}</div>
+      <div class="avatar avatar-sm" style="background:${d.bg}">${d.avatar}</div>
+      <div style="flex:1"><div style="font-weight:700;font-size:0.875rem;font-family:var(--font-main)">${d.name}</div><div style="font-size:0.75rem;color:var(--text-muted)">${d.meals} meals donated</div></div>
+      <div class="progress-bar" style="width:80px"><div class="progress-fill" style="background:var(--gradient-purple);width:${(d.meals/48*100).toFixed(0)}%"></div></div>
+    </div>`).join('');
+
+  // Health Tips
+  const tips = [
+    { icon:'💧', title:'Stay Hydrated', desc:'Drink 8 glasses of water daily. Dehydration affects energy and metabolism.' },
+    { icon:'🥗', title:'Eat More Greens', desc:'Include leafy vegetables in every meal for essential micronutrients.' },
+    { icon:'🚶', title:'Walk 10k Steps', desc:'Daily walking improves heart health and burns 300-500 kcal.' },
+  ];
+  document.getElementById('healthTips').innerHTML = tips.map(t => `
+    <div class="health-tip">
+      <div style="font-size:1.3rem;flex-shrink:0">${t.icon}</div>
+      <div><div style="font-weight:700;font-size:0.875rem;font-family:var(--font-main);margin-bottom:3px">${t.title}</div><div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.5">${t.desc}</div></div>
+    </div>`).join('');
+});
+</script>
+</body>
+</html>

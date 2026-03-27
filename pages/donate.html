@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NoGirr — Donate Food</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="stylesheet" href="../css/app.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+    .donate-grid { display:grid; grid-template-columns:1fr 420px; gap:28px; }
+    .form-section { margin-bottom:28px; }
+    .form-section-title {
+      font-family:var(--font-main); font-size:1rem; font-weight:700;
+      margin-bottom:16px; display:flex; align-items:center; gap:8px;
+      padding-bottom:10px; border-bottom:1px solid var(--glass-border);
+    }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .food-type-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
+    .food-type-btn {
+      padding:14px 10px; background:var(--glass); border:2px solid var(--glass-border);
+      border-radius:var(--radius-md); text-align:center; cursor:pointer; transition:var(--transition);
+      font-family:var(--font-main); font-size:0.875rem; font-weight:600;
+    }
+    .food-type-btn i { display:block; font-size:1.4rem; margin-bottom:6px; }
+    .food-type-btn.selected { border-color:var(--purple); background:rgba(124,58,237,0.15); color:var(--purple-light); }
+    .food-type-btn:hover { border-color:var(--purple-light); }
+    .price-toggle { display:flex; gap:12px; margin-bottom:16px; }
+    .price-option {
+      flex:1; padding:14px; background:var(--glass); border:2px solid var(--glass-border);
+      border-radius:var(--radius-md); text-align:center; cursor:pointer; transition:var(--transition);
+    }
+    .price-option.selected { border-color:var(--emerald); background:rgba(16,185,129,0.12); }
+    .price-option .price-icon { font-size:1.6rem; margin-bottom:6px; }
+    .price-option .price-label { font-family:var(--font-main); font-weight:700; font-size:0.9rem; }
+    .price-option .price-sub { font-size:0.75rem; color:var(--text-muted); }
+    .preview-card-donate {
+      background:var(--glass); border:1px solid var(--glass-border);
+      border-radius:var(--radius-xl); padding:24px; position:sticky; top:calc(var(--navbar-height)+24px);
+    }
+    .preview-food-img {
+      width:100%; height:200px; background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(244,63,94,0.15));
+      border-radius:var(--radius-lg); display:flex; align-items:center; justify-content:center;
+      font-size:5rem; margin-bottom:20px; position:relative; overflow:hidden;
+      border:1px solid var(--glass-border);
+    }
+    .preview-food-img input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; }
+    .preview-food-img .upload-hint { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); font-size:0.75rem; color:rgba(255,255,255,0.6); white-space:nowrap; }
+    .map-mini { width:100%; height:180px; border-radius:var(--radius-lg); overflow:hidden; border:1px solid var(--glass-border); margin-top:16px; }
+    .photo-upload-area {
+      border:2px dashed var(--glass-border); border-radius:var(--radius-lg); padding:32px;
+      text-align:center; cursor:pointer; transition:var(--transition); position:relative;
+    }
+    .photo-upload-area:hover { border-color:var(--purple-light); background:rgba(124,58,237,0.05); }
+    .photo-upload-area input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+    .step-dots { display:flex; gap:8px; justify-content:center; margin-bottom:32px; }
+    .step-dot { width:8px; height:8px; border-radius:50%; background:var(--glass-border); transition:var(--transition); }
+    .step-dot.active { background:var(--purple-light); width:24px; border-radius:4px; }
+    @media(max-width:1024px){ .donate-grid{grid-template-columns:1fr} .form-row{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+<nav class="navbar" id="appNavbar"></nav>
+
+<div class="app-layout">
+  <aside class="sidebar">
+    <nav class="sidebar-nav" id="appSidebar"></nav>
+    <div id="sidebarUser"></div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title"><i class="fa-solid fa-hand-holding-heart" style="color:var(--rose-light)"></i> Donate Food</h1>
+        <p class="page-subtitle">Share surplus food with people in need. Every meal counts 🙏</p>
+      </div>
+      <a href="find-food.html" class="btn btn-ghost"><i class="fa-solid fa-map"></i> View Active Donations</a>
+    </div>
+
+    <!-- Step Indicators -->
+    <div class="step-dots">
+      <div class="step-dot active" id="dot0" title="Food Details"></div>
+      <div class="step-dot" id="dot1" title="Pricing & Quantity"></div>
+      <div class="step-dot" id="dot2" title="Location"></div>
+      <div class="step-dot" id="dot3" title="Preview & Submit"></div>
+    </div>
+
+    <div class="donate-grid">
+      <!-- Form -->
+      <div>
+        <div class="panel">
+          <!-- SECTION 1: Food Info -->
+          <div class="form-section">
+            <div class="form-section-title"><i class="fa-solid fa-bowl-food" style="color:var(--purple-light)"></i> Food Information</div>
+            <div class="form-group">
+              <label class="form-label">Food Name <span style="color:var(--rose)">*</span></label>
+              <input type="text" class="form-input" id="foodName" placeholder="e.g. Chicken Biryani, Fresh Vegetables..." oninput="updatePreview()"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Food Type</label>
+              <div class="food-type-grid">
+                <div class="food-type-btn selected" data-type="cooked" onclick="selectFoodType(this)"><i class="fa-solid fa-fire"></i>Cooked</div>
+                <div class="food-type-btn" data-type="raw" onclick="selectFoodType(this)"><i class="fa-solid fa-leaf"></i>Raw/Fresh</div>
+                <div class="food-type-btn" data-type="packaged" onclick="selectFoodType(this)"><i class="fa-solid fa-box"></i>Packaged</div>
+                <div class="food-type-btn" data-type="bakery" onclick="selectFoodType(this)"><i class="fa-solid fa-bread-slice"></i>Bakery</div>
+                <div class="food-type-btn" data-type="fruits" onclick="selectFoodType(this)"><i class="fa-solid fa-apple-whole"></i>Fruits</div>
+                <div class="food-type-btn" data-type="other" onclick="selectFoodType(this)"><i class="fa-solid fa-ellipsis"></i>Other</div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Serves / Quantity <span style="color:var(--rose)">*</span></label>
+                <input type="text" class="form-input" id="quantity" placeholder="e.g. 10 servings, 2kg" oninput="updatePreview()"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Expires / Best Before</label>
+                <input type="datetime-local" class="form-input" id="expiry"/>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Description</label>
+              <textarea class="form-input" id="foodDesc" placeholder="Describe the food, ingredients, allergies info..." rows="3" oninput="updatePreview()"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Upload Food Photo</label>
+              <div class="photo-upload-area" id="photoArea" onclick="triggerUpload()">
+                <input type="file" id="photoInput" accept="image/*" onchange="previewPhoto(this)"/>
+                <div id="photoPlaceholder">
+                  <i class="fa-solid fa-cloud-arrow-up" style="font-size:2rem;color:var(--text-muted);margin-bottom:8px;display:block"></i>
+                  <div style="font-weight:600;margin-bottom:4px">Click to upload photo</div>
+                  <div style="font-size:0.8rem;color:var(--text-muted)">JPG, PNG up to 5MB</div>
+                </div>
+                <img id="photoPreview" style="display:none;max-height:160px;border-radius:8px;margin:0 auto"/>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 2: Pricing -->
+          <div class="form-section">
+            <div class="form-section-title"><i class="fa-solid fa-tag" style="color:var(--amber-light)"></i> Donation Type</div>
+            <div class="price-toggle">
+              <div class="price-option selected" id="freeOpt" onclick="setPricing('free')">
+                <div class="price-icon">🎁</div>
+                <div class="price-label">Free Donation</div>
+                <div class="price-sub">Give it away for free</div>
+              </div>
+              <div class="price-option" id="paidOpt" onclick="setPricing('paid')">
+                <div class="price-icon">💳</div>
+                <div class="price-label">Paid Listing</div>
+                <div class="price-sub">Set a price (subsidized)</div>
+              </div>
+            </div>
+            <div id="paidSection" style="display:none">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Price (₹) per serving/unit</label>
+                  <input type="number" class="form-input" id="priceInput" placeholder="0" min="0"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Payment Methods</label>
+                  <select class="form-input" id="payMethod">
+                    <option>UPI / QR Code</option>
+                    <option>Cash on Pickup</option>
+                    <option>Razorpay Online</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 3: Location -->
+          <div class="form-section">
+            <div class="form-section-title"><i class="fa-solid fa-location-dot" style="color:var(--emerald-light)"></i> Pickup Location</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+                  <span>Address</span>
+                  <button type="button" class="btn btn-emerald btn-sm" onclick="autoDetect()">
+                    <i class="fa-solid fa-crosshairs"></i> Auto Detect
+                  </button>
+                </label>
+                <input type="text" class="form-input" id="address" placeholder="Street, Area, City" oninput="updatePreview()"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">City / District</label>
+                <input type="text" class="form-input" id="city" placeholder="e.g. Chennai"/>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+                <span>Live Location Sharing</span>
+                <label class="toggle"><input type="checkbox" id="liveToggle" onchange="updatePreview()"/><span class="toggle-slider"></span></label>
+              </label>
+              <p style="font-size:0.8rem;color:var(--text-muted);margin-top:4px">If enabled, recipients can track your real-time location until pickup is complete</p>
+            </div>
+            <div id="miniMap" class="map-mini"></div>
+          </div>
+
+          <!-- SECTION 4: Contact -->
+          <div class="form-section">
+            <div class="form-section-title"><i class="fa-solid fa-phone" style="color:var(--cyan)"></i> Contact Details</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Contact Phone</label>
+                <input type="tel" class="form-input" id="contactPhone" placeholder="+91 98765 43210"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Preferred Contact</label>
+                <select class="form-input" id="contactPref">
+                  <option>Phone Call</option>
+                  <option>WhatsApp</option>
+                  <option>In-App Chat</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary w-full" style="justify-content:center;font-size:1rem;padding:16px" onclick="submitDonation()">
+            <i class="fa-solid fa-paper-plane"></i> Post Donation Listing
+          </button>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div>
+        <div class="preview-card-donate">
+          <div style="font-family:var(--font-main);font-weight:700;font-size:0.875rem;margin-bottom:16px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.08em">
+            Live Preview
+          </div>
+          <div class="preview-food-img" id="previewImgWrap">
+            <span id="previewEmoji">🍽️</span>
+            <div class="upload-hint"><i class="fa-solid fa-camera"></i> Click form to upload</div>
+          </div>
+          <div style="margin-bottom:12px">
+            <div style="font-family:var(--font-main);font-weight:800;font-size:1.1rem;margin-bottom:6px" id="previewName">Your Food Name</div>
+            <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:10px" id="previewDesc">Description will appear here...</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px" id="previewTags">
+              <span class="badge badge-purple">Cooked</span>
+              <span class="badge badge-free">FREE</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:0.8rem">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--glass);border-radius:var(--radius-md);border:1px solid var(--glass-border)">
+              <span style="color:var(--text-muted)"><i class="fa-solid fa-box"></i> Quantity</span>
+              <span id="previewQty" class="font-bold">—</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:var(--glass);border-radius:var(--radius-md);border:1px solid var(--glass-border)">
+              <span style="color:var(--text-muted)"><i class="fa-solid fa-location-dot"></i> Location</span>
+              <span id="previewAddr" class="font-bold">—</span>
+            </div>
+            <div id="previewLive" style="display:none;align-items:center;justify-content:space-between;padding:8px;background:rgba(16,185,129,0.08);border-radius:var(--radius-md);border:1px solid rgba(16,185,129,0.2)">
+              <span class="live-badge"><span class="live-dot"></span> Live Tracking Enabled</span>
+            </div>
+          </div>
+          <div style="margin-top:16px;padding:12px;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.2);border-radius:var(--radius-md);font-size:0.78rem;color:var(--text-secondary)">
+            <i class="fa-solid fa-info-circle" style="color:var(--purple-light)"></i>
+            Your listing will be visible to people within <strong style="color:var(--purple-light)">5km</strong> of your location.
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="../js/app.js"></script>
+<script>
+  buildNavbar('Donate');
+  buildSidebar('Donate Food');
+
+  let isFree = true;
+  let foodType = 'cooked';
+  const typeEmojis = { cooked:'🍛', raw:'🥦', packaged:'📦', bakery:'🍞', fruits:'🍎', other:'🍽️' };
+
+  function selectFoodType(el) {
+    document.querySelectorAll('.food-type-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    foodType = el.dataset.type;
+    document.getElementById('previewEmoji').textContent = typeEmojis[foodType] || '🍽️';
+    updatePreview();
+  }
+
+  function setPricing(type) {
+    isFree = type === 'free';
+    document.getElementById('freeOpt').classList.toggle('selected', isFree);
+    document.getElementById('paidOpt').classList.toggle('selected', !isFree);
+    document.getElementById('paidSection').style.display = isFree ? 'none' : 'block';
+    updatePreview();
+  }
+
+  function updatePreview() {
+    const name = document.getElementById('foodName').value || 'Your Food Name';
+    const desc = document.getElementById('foodDesc').value || 'Description will appear here...';
+    const qty = document.getElementById('quantity').value || '—';
+    const addr = document.getElementById('address').value || '—';
+    const live = document.getElementById('liveToggle').checked;
+    document.getElementById('previewName').textContent = name;
+    document.getElementById('previewDesc').textContent = desc;
+    document.getElementById('previewQty').textContent = qty;
+    document.getElementById('previewAddr').textContent = addr.length > 20 ? addr.slice(0,20)+'...' : addr;
+    const tagsEl = document.getElementById('previewTags');
+    tagsEl.innerHTML = `<span class="badge badge-purple">${foodType}</span>${isFree ? '<span class="badge badge-free">FREE</span>' : '<span class="badge badge-paid">PAID</span>'}`;
+    const liveEl = document.getElementById('previewLive');
+    liveEl.style.display = live ? 'flex' : 'none';
+  }
+
+  function autoDetect() {
+    showToast('Detecting location...', 'info');
+    getLocation((err, coords) => {
+      if (err) { showToast('Location access denied. Please enter manually.', 'error'); return; }
+      document.getElementById('address').value = `Lat: ${coords.latitude.toFixed(4)}, Lng: ${coords.longitude.toFixed(4)}`;
+      document.getElementById('city').value = 'Chennai';
+      updatePreview();
+      showToast('Location detected!', 'success');
+      updateMiniMap(coords.latitude, coords.longitude);
+    });
+  }
+
+  // Mini Map
+  let miniMap = null;
+  function updateMiniMap(lat, lng) {
+    if (!miniMap) {
+      miniMap = L.map('miniMap', { center:[lat,lng], zoom:15, zoomControl:false, dragging:false, scrollWheelZoom:false });
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png').addTo(miniMap);
+    }
+    miniMap.setView([lat, lng], 15);
+    L.marker([lat,lng]).addTo(miniMap);
+  }
+  // Default mini map
+  setTimeout(() => { if (!miniMap) updateMiniMap(13.0827, 80.2707); }, 500);
+
+  function triggerUpload() { document.getElementById('photoInput').click(); }
+
+  function previewPhoto(input) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById('photoPlaceholder').style.display = 'none';
+        const img = document.getElementById('photoPreview');
+        img.src = e.target.result; img.style.display = 'block';
+        showToast('Photo uploaded!', 'success');
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  function submitDonation() {
+    const name = document.getElementById('foodName').value;
+    const qty = document.getElementById('quantity').value;
+    const addr = document.getElementById('address').value;
+    if (!name) { showToast('Please enter food name', 'error'); return; }
+    if (!qty) { showToast('Please enter quantity', 'error'); return; }
+    if (!addr) { showToast('Please enter pickup address', 'error'); return; }
+    const btn = event.target;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Posting...';
+    btn.disabled = true;
+    setTimeout(() => {
+      showToast(`"${name}" listed successfully! 🎉`, 'success');
+      setTimeout(() => window.location.href = 'find-food.html', 1500);
+    }, 1800);
+  }
+</script>
+</body>
+</html>

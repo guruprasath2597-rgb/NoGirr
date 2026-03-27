@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NoGirr — Admin Dashboard</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="stylesheet" href="../css/app.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .admin-stat { background:var(--glass); border:1px solid var(--glass-border); border-radius:var(--radius-lg); padding:24px; display:flex; align-items:center; gap:16px; transition:var(--transition); position:relative; overflow:hidden; }
+    .admin-stat::after { content:''; position:absolute; bottom:0; left:0; right:0; height:3px; background:var(--aclr,var(--purple)); }
+    .admin-stat:hover { transform:translateY(-3px); }
+    .admin-stat-icon { width:52px; height:52px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-size:1.4rem; flex-shrink:0; }
+    .admin-stat-val { font-family:var(--font-main); font-size:2rem; font-weight:900; line-height:1; }
+    .admin-stat-lbl { font-size:0.78rem; color:var(--text-secondary); margin-top:2px; }
+    .admin-stat-trend { margin-left:auto; font-size:0.75rem; font-weight:600; }
+    .listing-row { display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.04); transition:var(--transition); }
+    .listing-row:hover { background:rgba(255,255,255,0.02); }
+    .listing-row:last-child { border-bottom:none; }
+    .listing-emoji { font-size:1.6rem; flex-shrink:0; }
+    .listing-info { flex:1; min-width:0; }
+    .listing-name { font-weight:700; font-size:0.875rem; font-family:var(--font-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .listing-meta { font-size:0.72rem; color:var(--text-muted); margin-top:2px; }
+    .listing-actions { display:flex; gap:6px; flex-shrink:0; }
+    .action-btn { width:30px; height:30px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; cursor:pointer; border:none; font-size:0.8rem; transition:var(--transition); }
+    .action-approve { background:rgba(16,185,129,0.15); color:var(--emerald-light); }
+    .action-approve:hover { background:rgba(16,185,129,0.3); }
+    .action-reject { background:rgba(244,63,94,0.15); color:var(--rose-light); }
+    .action-reject:hover { background:rgba(244,63,94,0.3); }
+    .action-view { background:rgba(124,58,237,0.15); color:var(--purple-light); }
+    .action-view:hover { background:rgba(124,58,237,0.3); }
+    .user-row { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+    .user-row:last-child { border-bottom:none; }
+    .status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:4px; }
+    .status-active { background:var(--emerald); }
+    .status-pending { background:var(--amber); }
+    .status-banned { background:var(--rose); }
+    .map-admin { width:100%; height:320px; border-radius:var(--radius-lg); overflow:hidden; border:1px solid var(--glass-border); }
+    .alert-item { display:flex; align-items:flex-start; gap:12px; padding:14px; background:var(--glass); border:1px solid var(--glass-border); border-radius:var(--radius-md); margin-bottom:10px; }
+    .alert-icon { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:0.9rem; }
+    .activity-scroll { max-height:320px; overflow-y:auto; }
+  </style>
+</head>
+<body>
+<nav class="navbar" id="appNavbar"></nav>
+<div class="app-layout">
+  <aside class="sidebar"><nav class="sidebar-nav" id="appSidebar"></nav><div id="sidebarUser"></div></aside>
+  <main class="main-content">
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title"><i class="fa-solid fa-shield-halved" style="color:var(--purple-light)"></i> Admin Dashboard</h1>
+        <p class="page-subtitle">Platform overview · <span class="live-badge"><span class="live-dot"></span> Live data</span></p>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" onclick="exportData()"><i class="fa-solid fa-download"></i> Export</button>
+        <button class="btn btn-primary" onclick="showToast('Report generated!','success')"><i class="fa-solid fa-file-chart-column"></i> Generate Report</button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs" style="margin-bottom:28px;width:fit-content">
+      <button class="tab-btn active" onclick="switchAdminTab('overview',this)">📊 Overview</button>
+      <button class="tab-btn" onclick="switchAdminTab('listings',this)">📋 Listings</button>
+      <button class="tab-btn" onclick="switchAdminTab('users',this)">👥 Users</button>
+      <button class="tab-btn" onclick="switchAdminTab('analytics',this)">📈 Analytics</button>
+      <button class="tab-btn" onclick="switchAdminTab('alerts',this)">🔔 Alerts <span class="badge badge-rose" style="font-size:0.65rem;padding:2px 6px">3</span></button>
+    </div>
+
+    <!-- OVERVIEW TAB -->
+    <div id="atab-overview" class="tab-content active">
+      <!-- Stats Grid -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px" id="adminStatsGrid"></div>
+
+      <div class="content-row">
+        <!-- Main Chart -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title"><i class="fa-solid fa-chart-line" style="color:var(--purple-light)"></i> Platform Growth</div>
+            <div style="display:flex;gap:6px">
+              <button class="filter-pill active" onclick="updateMainChart('week',this)" style="font-size:0.72rem;padding:4px 10px">Week</button>
+              <button class="filter-pill" onclick="updateMainChart('month',this)" style="font-size:0.72px;padding:4px 10px">Month</button>
+              <button class="filter-pill" onclick="updateMainChart('year',this)" style="font-size:0.72rem;padding:4px 10px">Year</button>
+            </div>
+          </div>
+          <canvas id="adminMainChart" height="220"></canvas>
+        </div>
+
+        <!-- Live Map -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title"><i class="fa-solid fa-map-location-dot" style="color:var(--emerald-light)"></i> Live Donations Map</div>
+            <span class="live-badge"><span class="live-dot"></span> Live</span>
+          </div>
+          <div class="map-admin" id="adminMap"></div>
+        </div>
+      </div>
+
+      <div class="content-row three">
+        <!-- Recent Listings -->
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><i class="fa-solid fa-bowl-food" style="color:var(--rose-light)"></i> Pending Approval</div><span class="badge badge-amber">8 pending</span></div>
+          <div id="pendingList"></div>
+        </div>
+        <!-- City Breakdown -->
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><i class="fa-solid fa-city" style="color:var(--cyan)"></i> Top Cities</div></div>
+          <canvas id="cityChart" height="180"></canvas>
+        </div>
+        <!-- Quick Actions -->
+        <div class="panel">
+          <div class="panel-title mb-4"><i class="fa-solid fa-bolt" style="color:var(--amber-light)"></i> Quick Actions</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button class="btn btn-ghost w-full" style="justify-content:flex-start" onclick="showToast('Sending announcement...','info')"><i class="fa-solid fa-megaphone" style="color:var(--purple-light)"></i> Send Announcement</button>
+            <button class="btn btn-ghost w-full" style="justify-content:flex-start" onclick="showToast('Database backup started','success')"><i class="fa-solid fa-database" style="color:var(--emerald-light)"></i> Backup Database</button>
+            <button class="btn btn-ghost w-full" style="justify-content:flex-start" onclick="showToast('Verification emails sent','success')"><i class="fa-solid fa-envelope" style="color:var(--cyan)"></i> Verify All Pending</button>
+            <button class="btn btn-ghost w-full" style="justify-content:flex-start" onclick="switchAdminTab('analytics',document.querySelectorAll('.tab-btn')[3])"><i class="fa-solid fa-chart-bar" style="color:var(--amber-light)"></i> View Analytics</button>
+            <button class="btn btn-ghost w-full" style="justify-content:flex-start" onclick="showToast('Report exported as PDF','success')"><i class="fa-solid fa-file-pdf" style="color:var(--rose-light)"></i> Export PDF Report</button>
+          </div>
+          <div class="divider"></div>
+          <div class="panel-title mb-4" style="font-size:0.875rem"><i class="fa-solid fa-gauge" style="color:var(--emerald-light)"></i> System Status</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;font-size:0.8rem"><span style="color:var(--text-muted)">Server Uptime</span><strong style="color:var(--emerald-light)">99.9%</strong></div>
+            <div class="progress-bar"><div class="progress-fill progress-emerald" style="width:99%"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.8rem"><span style="color:var(--text-muted)">API Response</span><strong style="color:var(--emerald-light)">42ms</strong></div>
+            <div class="progress-bar"><div class="progress-fill progress-purple" style="width:15%"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.8rem"><span style="color:var(--text-muted)">Storage Used</span><strong style="color:var(--amber-light)">67%</strong></div>
+            <div class="progress-bar"><div class="progress-fill progress-amber" style="width:67%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LISTINGS TAB -->
+    <div id="atab-listings" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title"><i class="fa-solid fa-list" style="color:var(--purple-light)"></i> All Donations</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div class="search-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search listings..." id="listingSearch" oninput="filterListings(this.value)"/></div>
+            <select class="form-input" style="width:auto;padding:8px 12px;font-size:0.8rem" onchange="filterListingStatus(this.value)">
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="pending">Pending</option>
+              <option value="expired">Expired</option>
+            </select>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Food</th><th>Donor</th><th>Type</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="listingsTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- USERS TAB -->
+    <div id="atab-users" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title"><i class="fa-solid fa-users" style="color:var(--purple-light)"></i> User Management</div>
+          <div style="display:flex;gap:8px">
+            <div class="search-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search users..."/></div>
+            <button class="btn btn-primary btn-sm" onclick="showToast('Export started','success')"><i class="fa-solid fa-download"></i> Export</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>User</th><th>Role</th><th>Donated</th><th>Joined</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="usersTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ANALYTICS TAB -->
+    <div id="atab-analytics" class="tab-content">
+      <div class="content-row">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><i class="fa-solid fa-utensils" style="color:var(--rose-light)"></i> Donations by Food Type</div></div>
+          <canvas id="foodTypeChart" height="280"></canvas>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><i class="fa-solid fa-clock" style="color:var(--purple-light)"></i> Peak Donation Hours</div></div>
+          <canvas id="hoursChart" height="280"></canvas>
+        </div>
+      </div>
+      <div class="content-row">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><i class="fa-solid fa-indian-rupee-sign" style="color:var(--amber-light)"></i> Revenue & Transactions</div></div>
+          <canvas id="revenueChart" height="200"></canvas>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px">
+            <div style="text-align:center;background:var(--glass);border-radius:var(--radius-md);padding:12px"><div style="font-family:var(--font-main);font-weight:800;color:var(--amber-light)">₹1,24,500</div><div style="font-size:0.72rem;color:var(--text-muted)">Total Transactions</div></div>
+            <div style="text-align:center;background:var(--glass);border-radius:var(--radius-md);padding:12px"><div style="font-family:var(--font-main);font-weight:800;color:var(--emerald-light)">₹12,450</div><div style="font-size:0.72rem;color:var(--text-muted)">Platform Fee</div></div>
+            <div style="text-align:center;background:var(--glass);border-radius:var(--radius-md);padding:12px"><div style="font-family:var(--font-main);font-weight:800;color:var(--purple-light)">1,247</div><div style="font-size:0.72rem;color:var(--text-muted)">Paid Donations</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><i class="fa-solid fa-heart-pulse" style="color:var(--emerald-light)"></i> Health Tracker Usage</div></div>
+          <canvas id="healthUsageChart" height="200"></canvas>
+          <div style="margin-top:16px">
+            <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:8px"><span style="color:var(--text-muted)">Avg daily logs per user</span><strong style="color:var(--emerald-light)">2.4 meals</strong></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:8px"><span style="color:var(--text-muted)">Diet plan activations</span><strong style="color:var(--purple-light)">3,821</strong></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.8rem"><span style="color:var(--text-muted)">Most popular plan</span><strong style="color:var(--amber-light)">Balanced Nutrition</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTS TAB -->
+    <div id="atab-alerts" class="tab-content">
+      <div class="content-row">
+        <div>
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title"><i class="fa-solid fa-triangle-exclamation" style="color:var(--rose-light)"></i> Active Alerts</div><button class="btn btn-ghost btn-sm" onclick="showToast('All alerts cleared','success')">Clear All</button></div>
+            <div class="activity-scroll" id="alertsList"></div>
+          </div>
+        </div>
+        <div>
+          <div class="panel mb-6">
+            <div class="panel-title mb-4"><i class="fa-solid fa-clock-rotate-left" style="color:var(--purple-light)"></i> Recent Platform Activity</div>
+            <div class="activity-scroll" id="platformActivity"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title mb-4"><i class="fa-solid fa-chart-pie" style="color:var(--amber-light)"></i> Alert Summary</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(244,63,94,0.08);border-radius:var(--radius-md);border:1px solid rgba(244,63,94,0.2)"><span style="font-size:0.85rem">🔴 Critical</span><strong style="color:var(--rose-light)">1</strong></div>
+              <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(245,158,11,0.08);border-radius:var(--radius-md);border:1px solid rgba(245,158,11,0.2)"><span style="font-size:0.85rem">🟡 Warning</span><strong style="color:var(--amber-light)">2</strong></div>
+              <div style="display:flex;justify-content:space-between;padding:10px;background:rgba(16,185,129,0.08);border-radius:var(--radius-md);border:1px solid rgba(16,185,129,0.2)"><span style="font-size:0.85rem">🟢 Info</span><strong style="color:var(--emerald-light)">5</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="../js/app.js"></script>
+<script>
+  buildNavbar('');
+  buildSidebar('Admin');
+
+  function switchAdminTab(id, btn) {
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('atab-'+id).classList.add('active');
+    if(btn) btn.classList.add('active');
+  }
+
+  // Stats
+  const STATS = [
+    {icon:'fa-utensils',label:'Total Donations',val:'12,584',trend:'+234 today',up:true,clr:'var(--purple)',bg:'rgba(124,58,237,0.15)'},
+    {icon:'fa-users',label:'Registered Users',val:'9,246',trend:'+47 today',up:true,clr:'var(--rose)',bg:'rgba(244,63,94,0.15)'},
+    {icon:'fa-map-location-dot',label:'Active Listings',val:'142',trend:'+18 live',up:true,clr:'var(--emerald)',bg:'rgba(16,185,129,0.15)'},
+    {icon:'fa-city',label:'Cities Active',val:'48',trend:'+3 new',up:true,clr:'var(--amber)',bg:'rgba(245,158,11,0.15)'},
+  ];
+  document.getElementById('adminStatsGrid').innerHTML = STATS.map(s=>`
+    <div class="admin-stat" style="--aclr:${s.clr}">
+      <div class="admin-stat-icon" style="background:${s.bg}"><i class="fa-solid ${s.icon}" style="color:${s.clr};font-size:1.3rem"></i></div>
+      <div style="flex:1"><div class="admin-stat-val" style="color:${s.clr}">${s.val}</div><div class="admin-stat-lbl">${s.label}</div></div>
+      <div class="admin-stat-trend" style="color:${s.up?'var(--emerald-light)':'var(--rose-light)'}">${s.trend}</div>
+    </div>`).join('');
+
+  // Main Chart
+  let mainChart;
+  const chartData = {
+    week: { labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], donations:[42,58,35,71,64,89,55], users:[12,18,9,22,19,28,15] },
+    month: { labels:['Wk1','Wk2','Wk3','Wk4'], donations:[180,220,195,260], users:[55,70,62,80] },
+    year: { labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], donations:[420,580,720,650,810,900,880,940,1020,1100,980,1200], users:[140,200,260,220,290,330,310,360,400,450,380,490] }
+  };
+  function initMainChart(period='week') {
+    const d = chartData[period];
+    const ctx = document.getElementById('adminMainChart').getContext('2d');
+    if (mainChart) mainChart.destroy();
+    mainChart = new Chart(ctx,{
+      type:'line',
+      data:{ labels:d.labels, datasets:[
+        {label:'Donations',data:d.donations,borderColor:'rgba(124,58,237,0.8)',backgroundColor:'rgba(124,58,237,0.1)',fill:true,tension:0.4,pointBackgroundColor:'rgba(124,58,237,0.8)',pointRadius:4},
+        {label:'New Users',data:d.users,borderColor:'rgba(16,185,129,0.8)',backgroundColor:'rgba(16,185,129,0.06)',fill:true,tension:0.4,pointBackgroundColor:'rgba(16,185,129,0.8)',pointRadius:4},
+      ]},
+      options:{responsive:true,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}},tooltip:{backgroundColor:'#0f0f1a',titleColor:'#f1f5f9',bodyColor:'#94a3b8',borderColor:'rgba(255,255,255,0.1)',borderWidth:1}},
+        scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#94a3b8'}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#94a3b8'},beginAtZero:true}}}
+    });
+  }
+  initMainChart();
+  function updateMainChart(period, btn) {
+    document.querySelectorAll('.filter-pill').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
+    initMainChart(period);
+  }
+
+  // Admin Map
+  const adminMap = L.map('adminMap',{center:[13.0827,80.2707],zoom:11,zoomControl:false});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png').addTo(adminMap);
+  MOCK_DONATIONS.forEach(f=>{
+    L.circleMarker([f.lat,f.lng],{radius:8,color:f.live?'#10b981':'#7c3aed',fillColor:f.live?'#10b981':'#7c3aed',fillOpacity:0.7,weight:2})
+      .bindPopup(`<strong>${f.name}</strong><br/>${f.donor}<br/>${f.dist}km away`)
+      .addTo(adminMap);
+  });
+
+  // Pending List
+  const PENDING = [
+    {emoji:'🍛',name:'Veg Thali Set',donor:'Ramesh Hotel',status:'pending',type:'cooked',loc:'T Nagar'},
+    {emoji:'🥗',name:'Garden Salad Mix',donor:'Fresh Farms',status:'pending',type:'raw',loc:'Adyar'},
+    {emoji:'🍞',name:'Morning Bread',donor:'Sunrise Bakery',status:'pending',type:'bakery',loc:'Egmore'},
+  ];
+  document.getElementById('pendingList').innerHTML = PENDING.map(p=>`
+    <div class="listing-row">
+      <div class="listing-emoji">${p.emoji}</div>
+      <div class="listing-info"><div class="listing-name">${p.name}</div><div class="listing-meta">${p.donor} · ${p.loc}</div></div>
+      <span class="badge badge-amber">Pending</span>
+      <div class="listing-actions">
+        <button class="action-btn action-approve" onclick="approveItem(this,'${p.name}')"><i class="fa-solid fa-check"></i></button>
+        <button class="action-btn action-reject" onclick="rejectItem(this,'${p.name}')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>`).join('');
+
+  function approveItem(btn, name) { btn.closest('.listing-row').remove(); showToast(`"${name}" approved ✅`,'success'); }
+  function rejectItem(btn, name) { btn.closest('.listing-row').remove(); showToast(`"${name}" rejected`,'warning'); }
+
+  // City Chart
+  new Chart(document.getElementById('cityChart').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:['Chennai','Mumbai','Delhi','Bangalore','Hyderabad','Others'],datasets:[{data:[35,22,18,14,8,3],backgroundColor:['rgba(124,58,237,0.8)','rgba(244,63,94,0.8)','rgba(16,185,129,0.8)','rgba(245,158,11,0.8)','rgba(6,182,212,0.8)','rgba(100,100,120,0.6)'],borderWidth:0}]},
+    options:{responsive:true,cutout:'60%',plugins:{legend:{labels:{color:'#94a3b8',font:{size:10}},position:'bottom'},tooltip:{backgroundColor:'#0f0f1a',titleColor:'#f1f5f9',bodyColor:'#94a3b8'}}}
+  });
+
+  // Listings Table
+  const ALL_LISTINGS = MOCK_DONATIONS.map(f=>({...f,status:'active'})).concat(PENDING.map(p=>({...p,status:'pending',lat:0,lng:0,dist:0,free:true,qty:'',exp:'',phone:'',rating:0,live:false})));
+  function renderListingsTable(data) {
+    document.getElementById('listingsTable').innerHTML = data.map(f=>`
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:8px"><span style="font-size:1.2rem">${f.emoji||'🍽️'}</span><strong>${f.name}</strong></div></td>
+        <td>${f.donor||f.donor||'—'}</td>
+        <td><span class="badge badge-cyan">${f.type}</span> ${f.free!==undefined?(f.free?'<span class="badge badge-free">FREE</span>':'<span class="badge badge-paid">PAID</span>'):''}</td>
+        <td style="font-size:0.8rem;color:var(--text-muted)">${f.address||f.loc||'—'}</td>
+        <td><span class="badge ${f.status==='active'?'badge-emerald':f.status==='pending'?'badge-amber':'badge-rose'}">${f.status}</span></td>
+        <td><div style="display:flex;gap:4px"><button class="action-btn action-view" onclick="showToast('Viewing listing','info')"><i class="fa-solid fa-eye"></i></button><button class="action-btn action-approve" onclick="showToast('Approved','success')"><i class="fa-solid fa-check"></i></button><button class="action-btn action-reject" onclick="showToast('Removed','warning')"><i class="fa-solid fa-trash"></i></button></div></td>
+      </tr>`).join('');
+  }
+  renderListingsTable(ALL_LISTINGS);
+  function filterListings(q) { renderListingsTable(ALL_LISTINGS.filter(f=>(f.name||'').toLowerCase().includes(q.toLowerCase())||(f.donor||'').toLowerCase().includes(q.toLowerCase()))); }
+  function filterListingStatus(status) { renderListingsTable(status==='all'?ALL_LISTINGS:ALL_LISTINGS.filter(f=>f.status===status)); }
+
+  // Users Table
+  const USERS = [
+    {name:'Suresh Patel',avatar:'S',bg:'var(--gradient-purple)',role:'Donor',donated:48,joined:'Jan 2025',status:'active'},
+    {name:'Priya Rajan',avatar:'P',bg:'var(--gradient-rose)',role:'Both',donated:12,joined:'Feb 2025',status:'active'},
+    {name:'Ananya NGO',avatar:'A',bg:'var(--gradient-emerald)',role:'Donor',donated:35,joined:'Dec 2024',status:'active'},
+    {name:'Raj Kumar',avatar:'R',bg:'var(--gradient-amber)',role:'Recipient',donated:0,joined:'Mar 2025',status:'active'},
+    {name:'Meera Singh',avatar:'M',bg:'var(--gradient-purple)',role:'Both',donated:8,joined:'Mar 2025',status:'pending'},
+    {name:'XYZ Spammer',avatar:'X',bg:'rgba(100,100,100,0.3)',role:'Donor',donated:0,joined:'Mar 2026',status:'banned'},
+  ];
+  document.getElementById('usersTable').innerHTML = USERS.map(u=>`
+    <tr>
+      <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar avatar-sm" style="background:${u.bg}">${u.avatar}</div><strong>${u.name}</strong></div></td>
+      <td><span class="badge badge-purple">${u.role}</span></td>
+      <td><strong style="color:var(--purple-light);font-family:var(--font-main)">${u.donated}</strong> meals</td>
+      <td style="font-size:0.8rem;color:var(--text-muted)">${u.joined}</td>
+      <td><span class="status-dot status-${u.status}"></span><span style="font-size:0.8rem">${u.status}</span></td>
+      <td><div style="display:flex;gap:4px">
+        <button class="action-btn action-view" onclick="showToast('Viewing ${u.name}','info')"><i class="fa-solid fa-eye"></i></button>
+        ${u.status==='banned'?`<button class="action-btn action-approve" onclick="showToast('${u.name} unbanned','success')"><i class="fa-solid fa-unlock"></i></button>`:`<button class="action-btn action-reject" onclick="showToast('${u.name} banned','warning')"><i class="fa-solid fa-ban"></i></button>`}
+      </div></td>
+    </tr>`).join('');
+
+  // Analytics Charts
+  new Chart(document.getElementById('foodTypeChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:['Cooked','Raw/Fresh','Packaged','Bakery','Fruits','Other'],datasets:[{data:[45,22,15,10,5,3],backgroundColor:['rgba(124,58,237,0.7)','rgba(16,185,129,0.7)','rgba(245,158,11,0.7)','rgba(244,63,94,0.7)','rgba(6,182,212,0.7)','rgba(100,100,140,0.5)'],borderRadius:8,borderSkipped:false}]},
+    options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false},tooltip:{backgroundColor:'#0f0f1a',titleColor:'#f1f5f9',bodyColor:'#94a3b8'}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#94a3b8'}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#94a3b8'}}}}
+  });
+  new Chart(document.getElementById('hoursChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:['6AM','8AM','10AM','12PM','2PM','4PM','6PM','8PM','10PM'],datasets:[{data:[5,22,35,60,45,30,72,85,40],backgroundColor:(ctx)=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,300);g.addColorStop(0,'rgba(244,63,94,0.8)');g.addColorStop(1,'rgba(124,58,237,0.4)');return g;},borderRadius:6,borderSkipped:false}]},
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'#0f0f1a',titleColor:'#f1f5f9',bodyColor:'#94a3b8'}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#94a3b8',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#94a3b8'},beginAtZero:true}}}
+  });
+  new Chart(document.getElementById('revenueChart').getContext('2d'),{
+    type:'line',
+    data:{labels:['Jan','Feb','Mar','Apr','May','Jun'],datasets:[{label:'Revenue ₹',data:[8200,12400,9800,15600,18200,22400],borderColor:'rgba(245,158,11,0.8)',backgroundColor:'rgba(245,158,11,0.08)',fill:true,tension:0.4}]},
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'#0f0f1a',titleColor:'#f1f5f9',bodyColor:'#94a3b8'}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#94a3b8'}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#94a3b8',callback:v=>'₹'+v.toLocaleString()}}}}
+  });
+  new Chart(document.getElementById('healthUsageChart').getContext('2d'),{
+    type:'line',
+    data:{labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],datasets:[{label:'Meal Logs',data:[420,580,510,630,590,490,380],borderColor:'rgba(16,185,129,0.8)',backgroundColor:'rgba(16,185,129,0.08)',fill:true,tension:0.4}]},
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'#0f0f1a',titleColor:'#f1f5f9',bodyColor:'#94a3b8'}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#94a3b8'}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#94a3b8'},beginAtZero:true}}}
+  });
+
+  // Alerts
+  const ALERTS = [
+    {type:'critical',icon:'fa-triangle-exclamation',bg:'rgba(244,63,94,0.15)',clr:'var(--rose-light)',title:'Expired listing still active',desc:'Listing #1042 by Ramesh Hotel expired 2h ago and is still showing on map.',time:'10m ago'},
+    {type:'warning',icon:'fa-flag',bg:'rgba(245,158,11,0.15)',clr:'var(--amber-light)',title:'Suspicious activity detected',desc:'User "xyz_user" posted 5 identical listings in 10 minutes.',time:'25m ago'},
+    {type:'warning',icon:'fa-server',bg:'rgba(245,158,11,0.15)',clr:'var(--amber-light)',title:'Storage reaching 70% capacity',desc:'Current usage: 67.2GB of 100GB. Consider archiving old data.',time:'1h ago'},
+    {type:'info',icon:'fa-circle-info',bg:'rgba(124,58,237,0.15)',clr:'var(--purple-light)',title:'New NGO registration',desc:'Ananya Foundation submitted NGO verification documents for review.',time:'2h ago'},
+    {type:'info',icon:'fa-user-plus',bg:'rgba(16,185,129,0.15)',clr:'var(--emerald-light)',title:'47 new users today',desc:'Highest single-day registration since platform launch.',time:'3h ago'},
+  ];
+  document.getElementById('alertsList').innerHTML = ALERTS.map(a=>`
+    <div class="alert-item">
+      <div class="alert-icon" style="background:${a.bg}"><i class="fa-solid ${a.icon}" style="color:${a.clr}"></i></div>
+      <div style="flex:1"><div style="font-weight:700;font-size:0.875rem;font-family:var(--font-main);margin-bottom:2px">${a.title}</div><div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.5">${a.desc}</div></div>
+      <div style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap;margin-left:8px">${a.time}</div>
+    </div>`).join('');
+
+  // Platform Activity
+  const ACTIVITIES = [
+    {emoji:'🍛',text:'Suresh Patel donated Biryani (10 servings)',time:'2m ago'},
+    {emoji:'👤',text:'New user Meera Singh registered as Donor',time:'8m ago'},
+    {emoji:'⭐',text:'Raj Kumar gave 5★ review to Ananya NGO',time:'15m ago'},
+    {emoji:'💳',text:'Payment ₹50 received for Fruit Basket listing',time:'22m ago'},
+    {emoji:'🗑️',text:'Admin removed expired listing #1040',time:'35m ago'},
+    {emoji:'✅',text:'NGO Ananya Foundation verified by admin',time:'1h ago'},
+    {emoji:'🍞',text:'Sunrise Bakery posted 3 new listings',time:'1.5h ago'},
+    {emoji:'📍',text:'Platform expanded to Coimbatore city',time:'2h ago'},
+  ];
+  document.getElementById('platformActivity').innerHTML = ACTIVITIES.map(a=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+      <div style="font-size:1.2rem;flex-shrink:0">${a.emoji}</div>
+      <div style="flex:1;font-size:0.8rem;color:var(--text-secondary)">${a.text}</div>
+      <div style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap">${a.time}</div>
+    </div>`).join('');
+
+  function exportData() { showToast('Exporting data as CSV...','info'); setTimeout(()=>showToast('Data exported successfully!','success'),1500); }
+</script>
+</body>
+</html>

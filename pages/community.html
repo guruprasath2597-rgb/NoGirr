@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NoGirr — Community Hub</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="stylesheet" href="../css/app.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+    .community-layout { display:grid; grid-template-columns:300px 1fr 280px; gap:24px; }
+    .post-card { background:var(--glass); border:1px solid var(--glass-border); border-radius:var(--radius-xl); padding:24px; margin-bottom:16px; transition:var(--transition); }
+    .post-card:hover { border-color:rgba(124,58,237,0.25); }
+    .post-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+    .post-meta { flex:1; }
+    .post-name { font-family:var(--font-main); font-weight:700; font-size:0.9rem; }
+    .post-time { font-size:0.75rem; color:var(--text-muted); }
+    .post-badge { font-size:0.7rem; }
+    .post-content { font-size:0.9rem; color:var(--text-secondary); line-height:1.75; margin-bottom:16px; }
+    .post-image { width:100%; height:220px; object-fit:cover; border-radius:var(--radius-lg); margin-bottom:16px; background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(244,63,94,0.15)); display:flex; align-items:center; justify-content:center; font-size:4rem; }
+    .post-actions { display:flex; align-items:center; gap:4px; }
+    .post-action-btn { display:flex; align-items:center; gap:6px; padding:8px 14px; border-radius:var(--radius-full); color:var(--text-muted); font-size:0.8rem; font-weight:600; cursor:pointer; transition:var(--transition); background:transparent; border:none; font-family:var(--font-main); }
+    .post-action-btn:hover { background:var(--glass); color:var(--text-primary); }
+    .post-action-btn.liked { color:var(--rose-light); }
+    .post-divider { width:1px; height:20px; background:var(--glass-border); margin:0 4px; }
+    .comment-section { border-top:1px solid var(--glass-border); margin-top:16px; padding-top:16px; display:none; }
+    .comment-section.open { display:block; }
+    .comment-item { display:flex; gap:10px; margin-bottom:12px; }
+    .comment-bubble { background:rgba(255,255,255,0.04); border-radius:0 var(--radius-md) var(--radius-md) var(--radius-md); padding:10px 14px; flex:1; }
+    .comment-author { font-weight:700; font-size:0.78rem; font-family:var(--font-main); margin-bottom:4px; }
+    .comment-text { font-size:0.82rem; color:var(--text-secondary); line-height:1.5; }
+    .comment-input-row { display:flex; gap:8px; margin-top:12px; }
+    .comment-input-row input { flex:1; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); border-radius:var(--radius-full); padding:10px 16px; color:var(--text-primary); font-size:0.82rem; }
+    .leaderboard-item { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
+    .leaderboard-item:last-child { border-bottom:none; }
+    .leaderboard-rank { font-family:var(--font-main); font-weight:800; font-size:1.1rem; min-width:28px; }
+    .story-card { background:var(--glass); border:1px solid var(--glass-border); border-radius:var(--radius-lg); padding:16px; margin-bottom:12px; cursor:pointer; transition:var(--transition); }
+    .story-card:hover { border-color:rgba(124,58,237,0.3); transform:translateX(4px); }
+    .create-post-box { background:var(--glass); border:1px solid var(--glass-border); border-radius:var(--radius-xl); padding:20px; margin-bottom:20px; }
+    .create-post-input { width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--glass-border); border-radius:var(--radius-lg); padding:14px 18px; color:var(--text-primary); font-size:0.9rem; resize:none; transition:var(--transition); font-family:var(--font-body); }
+    .create-post-input:focus { border-color:var(--purple-light); background:rgba(124,58,237,0.04); box-shadow:0 0 0 3px rgba(124,58,237,0.1); }
+    .post-type-pills { display:flex; gap:8px; margin:12px 0; flex-wrap:wrap; }
+    .post-type-pill { padding:6px 14px; border-radius:var(--radius-full); font-size:0.78rem; font-weight:600; border:1px solid var(--glass-border); color:var(--text-muted); cursor:pointer; transition:var(--transition); background:transparent; font-family:var(--font-main); }
+    .post-type-pill.active { background:rgba(124,58,237,0.2); border-color:var(--purple); color:var(--purple-light); }
+    .donor-review { background:var(--glass); border:1px solid var(--glass-border); border-radius:var(--radius-lg); padding:16px; margin-bottom:10px; }
+    .challenge-card { background:linear-gradient(135deg,rgba(124,58,237,0.15),rgba(244,63,94,0.1)); border:1px solid rgba(124,58,237,0.25); border-radius:var(--radius-lg); padding:20px; margin-bottom:12px; }
+    .challenge-progress { margin-top:12px; }
+    @media(max-width:1200px){ .community-layout{grid-template-columns:1fr} .community-layout>:first-child,.community-layout>:last-child{display:none} }
+  </style>
+</head>
+<body>
+<nav class="navbar" id="appNavbar"></nav>
+<div class="app-layout">
+  <aside class="sidebar"><nav class="sidebar-nav" id="appSidebar"></nav><div id="sidebarUser"></div></aside>
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title"><i class="fa-solid fa-people-group" style="color:var(--purple-light)"></i> Community Hub</h1>
+        <p class="page-subtitle">Connect, share stories, and celebrate the zero hunger movement 🌱</p>
+      </div>
+      <div style="display:flex;gap:8px">
+        <div class="tabs" style="margin:0">
+          <button class="tab-btn active" onclick="switchComTab('feed',this)">📰 Feed</button>
+          <button class="tab-btn" onclick="switchComTab('reviews',this)">⭐ Reviews</button>
+          <button class="tab-btn" onclick="switchComTab('chat',this)">💬 Chat</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FEED TAB -->
+    <div id="com-feed" class="tab-content active">
+      <div class="community-layout">
+        <!-- Left: Stats & Challenges -->
+        <div>
+          <div class="panel mb-6">
+            <div class="panel-title mb-4"><i class="fa-solid fa-chart-simple" style="color:var(--purple-light)"></i> Your Impact</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--glass);border-radius:var(--radius-md);border:1px solid var(--glass-border)">
+                <span style="font-size:0.85rem"><i class="fa-solid fa-utensils" style="color:var(--purple-light)"></i> Meals Donated</span>
+                <strong style="font-family:var(--font-main);color:var(--purple-light)">24</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--glass);border-radius:var(--radius-md);border:1px solid var(--glass-border)">
+                <span style="font-size:0.85rem"><i class="fa-solid fa-people-group" style="color:var(--rose-light)"></i> People Fed</span>
+                <strong style="font-family:var(--font-main);color:var(--rose-light)">89</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--glass);border-radius:var(--radius-md);border:1px solid var(--glass-border)">
+                <span style="font-size:0.85rem"><i class="fa-solid fa-fire" style="color:var(--amber-light)"></i> Calories Saved</span>
+                <strong style="font-family:var(--font-main);color:var(--amber-light)">18.4K</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--glass);border-radius:var(--radius-md);border:1px solid var(--glass-border)">
+                <span style="font-size:0.85rem"><i class="fa-solid fa-star" style="color:var(--amber-light)"></i> Rating</span>
+                <strong style="font-family:var(--font-main);color:var(--amber-light)">4.9 ⭐</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title mb-4"><i class="fa-solid fa-trophy" style="color:var(--amber-light)"></i> Weekly Challenges</div>
+            <div class="challenge-card">
+              <div style="font-weight:700;font-family:var(--font-main);font-size:0.9rem;margin-bottom:4px">🍽️ Donate 5 Meals</div>
+              <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px">3 of 5 completed</div>
+              <div class="challenge-progress">
+                <div class="progress-bar"><div class="progress-fill progress-purple" style="width:60%"></div></div>
+              </div>
+              <div style="font-size:0.75rem;color:var(--purple-light);margin-top:6px">🎁 Reward: Gold Donor Badge</div>
+            </div>
+            <div class="challenge-card" style="background:linear-gradient(135deg,rgba(16,185,129,0.12),rgba(6,182,212,0.08));border-color:rgba(16,185,129,0.25)">
+              <div style="font-weight:700;font-family:var(--font-main);font-size:0.9rem;margin-bottom:4px">💪 Log 7 Days of Meals</div>
+              <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px">5 of 7 days done</div>
+              <div class="progress-bar"><div class="progress-fill progress-emerald" style="width:71%"></div></div>
+              <div style="font-size:0.75rem;color:var(--emerald-light);margin-top:6px">🎁 Reward: Health Master Badge</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center: Feed -->
+        <div id="postFeed">
+          <!-- Create Post -->
+          <div class="create-post-box">
+            <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">
+              <div class="avatar avatar-md" style="background:var(--gradient-purple);flex-shrink:0">Y</div>
+              <textarea class="create-post-input" id="newPostText" rows="3" placeholder="Share your story, donation update, or health achievement with the community..."></textarea>
+            </div>
+            <div class="post-type-pills">
+              <button class="post-type-pill active" onclick="setPostType(this,'story')">📖 Story</button>
+              <button class="post-type-pill" onclick="setPostType(this,'donation')">🎁 Donation Update</button>
+              <button class="post-type-pill" onclick="setPostType(this,'health')">💪 Health Win</button>
+              <button class="post-type-pill" onclick="setPostType(this,'tip')">💡 Food Tip</button>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;gap:8px">
+                <button class="post-action-btn"><i class="fa-solid fa-image"></i> Photo</button>
+                <button class="post-action-btn"><i class="fa-solid fa-location-dot"></i> Location</button>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="createPost()"><i class="fa-solid fa-paper-plane"></i> Share</button>
+            </div>
+          </div>
+
+          <!-- Posts Feed -->
+          <div id="postsContainer"></div>
+        </div>
+
+        <!-- Right: Leaderboard & Stories -->
+        <div>
+          <div class="panel mb-6">
+            <div class="panel-title mb-4"><i class="fa-solid fa-crown" style="color:var(--amber-light)"></i> Top Donors</div>
+            <div id="leaderboard"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title mb-4"><i class="fa-solid fa-book-open" style="color:var(--emerald-light)"></i> Success Stories</div>
+            <div id="storiesList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REVIEWS TAB -->
+    <div id="com-reviews" class="tab-content">
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:24px">
+        <div>
+          <div class="panel mb-6">
+            <div class="panel-header">
+              <div class="panel-title"><i class="fa-solid fa-star" style="color:var(--amber-light)"></i> Donor Reviews</div>
+              <button class="btn btn-primary btn-sm" onclick="openModal('reviewModal')"><i class="fa-solid fa-plus"></i> Write Review</button>
+            </div>
+            <div id="reviewsList"></div>
+          </div>
+        </div>
+        <div>
+          <div class="panel">
+            <div class="panel-title mb-4"><i class="fa-solid fa-chart-pie" style="color:var(--purple-light)"></i> Rating Summary</div>
+            <div style="text-align:center;margin:20px 0">
+              <div style="font-family:var(--font-main);font-weight:900;font-size:4rem;color:var(--amber-light)">4.8</div>
+              <div class="stars" style="justify-content:center;margin-bottom:4px"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star-half-stroke"></i></div>
+              <div style="font-size:0.8rem;color:var(--text-muted)">Based on 1,247 reviews</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-size:0.78rem;color:var(--text-muted);min-width:20px">5★</span><div class="progress-bar" style="flex:1"><div class="progress-fill progress-amber" style="width:72%"></div></div><span style="font-size:0.78rem;color:var(--text-muted)">72%</span></div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-size:0.78rem;color:var(--text-muted);min-width:20px">4★</span><div class="progress-bar" style="flex:1"><div class="progress-fill progress-amber" style="width:18%"></div></div><span style="font-size:0.78rem;color:var(--text-muted)">18%</span></div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-size:0.78rem;color:var(--text-muted);min-width:20px">3★</span><div class="progress-bar" style="flex:1"><div class="progress-fill progress-amber" style="width:7%"></div></div><span style="font-size:0.78rem;color:var(--text-muted)">7%</span></div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-size:0.78rem;color:var(--text-muted);min-width:20px">2★</span><div class="progress-bar" style="flex:1"><div class="progress-fill progress-rose" style="width:2%"></div></div><span style="font-size:0.78rem;color:var(--text-muted)">2%</span></div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-size:0.78rem;color:var(--text-muted);min-width:20px">1★</span><div class="progress-bar" style="flex:1"><div class="progress-fill progress-rose" style="width:1%"></div></div><span style="font-size:0.78rem;color:var(--text-muted)">1%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT TAB -->
+    <div id="com-chat" class="tab-content">
+      <div style="display:grid;grid-template-columns:280px 1fr;gap:0;height:calc(100vh - 240px);background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-xl);overflow:hidden">
+        <!-- Chat List -->
+        <div style="border-right:1px solid var(--glass-border);overflow-y:auto">
+          <div style="padding:16px;border-bottom:1px solid var(--glass-border)">
+            <div class="search-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search chats..." style="width:100%"/></div>
+          </div>
+          <div id="chatList"></div>
+        </div>
+        <!-- Chat Window -->
+        <div style="display:flex;flex-direction:column">
+          <div style="padding:16px 20px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:12px">
+            <div class="avatar avatar-sm" style="background:var(--gradient-purple)">R</div>
+            <div><div style="font-weight:700;font-family:var(--font-main);font-size:0.9rem">Raj Kumar</div><div style="font-size:0.75rem;color:var(--emerald-light)"><span class="live-dot"></span> Online</div></div>
+            <div style="margin-left:auto;display:flex;gap:8px">
+              <button class="post-action-btn"><i class="fa-solid fa-phone"></i></button>
+              <button class="post-action-btn"><i class="fa-solid fa-video"></i></button>
+            </div>
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px" id="chatMessages"></div>
+          <div style="padding:16px;border-top:1px solid var(--glass-border);display:flex;gap:8px">
+            <input type="text" id="chatInput" placeholder="Type a message..." class="form-input" style="border-radius:var(--radius-full)" onkeydown="if(event.key==='Enter')sendMsg()"/>
+            <button class="btn btn-primary" onclick="sendMsg()"><i class="fa-solid fa-paper-plane"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Review Modal -->
+<div class="modal-overlay" id="reviewModal">
+  <div class="modal">
+    <h3 style="font-family:var(--font-main);font-weight:800;margin-bottom:20px">Write a Review</h3>
+    <div class="form-group">
+      <label class="form-label">Donor Name</label>
+      <input type="text" class="form-input" id="reviewDonor" placeholder="Who are you reviewing?"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Rating</label>
+      <div style="display:flex;gap:8px;font-size:1.8rem;cursor:pointer" id="starPicker">
+        <span onclick="setRating(1)" data-r="1">⭐</span><span onclick="setRating(2)" data-r="2">⭐</span>
+        <span onclick="setRating(3)" data-r="3">⭐</span><span onclick="setRating(4)" data-r="4">⭐</span>
+        <span onclick="setRating(5)" data-r="5">⭐</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Your Review</label>
+      <textarea class="form-input" id="reviewText" rows="4" placeholder="Share your experience..."></textarea>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="submitReview()">Submit Review</button>
+      <button class="btn btn-ghost" onclick="closeModal('reviewModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+<script src="../js/app.js"></script>
+<script>
+  buildNavbar('Community');
+  buildSidebar('Community');
+
+  function switchComTab(id, btn) {
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('com-'+id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // ---- POSTS ----
+  const POSTS = [
+    { id:1, name:'Suresh Patel', avatar:'S', bg:'var(--gradient-purple)', role:'🏅 Top Donor', time:'2h ago', type:'donation', emoji:'🍱', text:'Just donated 20 servings of fresh Biryani from my restaurant! Found 8 families in need within 1km. This platform is incredible. Zero food waste today! 🙌', likes:142, comments:[{name:'Priya',text:'Amazing! You\'re an inspiration.'},{name:'Ananya',text:'Thank you so much Suresh ji! 🙏'}] },
+    { id:2, name:'Priya Rajan', avatar:'P', bg:'var(--gradient-rose)', role:'💪 Health Champion', time:'5h ago', type:'health', emoji:'💪', text:'Week 8 update on my NoGirr health journey! Lost 6kg following the diabetic-friendly diet plan. Tracking every meal made such a difference. Plus I\'ve been receiving donated vegetables to cook healthy meals. Win-win! 🥗', likes:89, comments:[] },
+    { id:3, name:'Ananya NGO', avatar:'A', bg:'var(--gradient-emerald)', role:'🌟 Verified NGO', time:'Yesterday', type:'story', emoji:'🌱', text:'Milestone achieved! Our NGO has now served 500 meals through NoGirr in just 2 months. From college students to elderly residents — every meal we share builds a stronger community. Thank you donors! ❤️', likes:324, comments:[{name:'Raj',text:'Phenomenal work! Keep going.'},{name:'Meera',text:'So proud of you all! 🙌'},{name:'Karthik',text:'500 meals! Incredible!'}] },
+    { id:4, name:'Meera Singh', avatar:'M', bg:'var(--gradient-amber)', role:'🥗 Health Enthusiast', time:'2 days ago', type:'tip', emoji:'💡', text:'Tip for budget cooking: Lentils (dal) are the most protein-dense food for the price. 100g gives 9g protein at just ₹8! Combined with rice, it\'s a complete amino acid profile. Cook once, eat twice! #HealthyEating #ZeroHunger', likes:67, comments:[] },
+  ];
+
+  let postFilter = 'story';
+  function setPostType(btn, type) { document.querySelectorAll('.post-type-pill').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); postFilter = type; }
+
+  function renderPosts() {
+    document.getElementById('postsContainer').innerHTML = POSTS.map(p => `
+      <div class="post-card" id="post-${p.id}">
+        <div class="post-header">
+          <div class="avatar avatar-md" style="background:${p.bg}">${p.avatar}</div>
+          <div class="post-meta">
+            <div class="post-name">${p.name} <span class="post-badge">${p.role}</span></div>
+            <div class="post-time">${p.time} · ${p.type === 'donation' ? '🎁 Donation' : p.type === 'health' ? '💪 Health' : p.type === 'tip' ? '💡 Tip' : '📖 Story'}</div>
+          </div>
+          <button class="post-action-btn" title="More"><i class="fa-solid fa-ellipsis"></i></button>
+        </div>
+        <div class="post-image">${p.emoji}</div>
+        <p class="post-content">${p.text}</p>
+        <div class="post-actions">
+          <button class="post-action-btn" id="like-${p.id}" onclick="toggleLike(${p.id},${p.likes})">
+            <i class="fa-solid fa-heart"></i> <span id="likeCount-${p.id}">${p.likes}</span>
+          </button>
+          <div class="post-divider"></div>
+          <button class="post-action-btn" onclick="toggleComments(${p.id})">
+            <i class="fa-solid fa-comment"></i> ${p.comments.length}
+          </button>
+          <div class="post-divider"></div>
+          <button class="post-action-btn" onclick="sharePost(${p.id})">
+            <i class="fa-solid fa-share-nodes"></i> Share
+          </button>
+        </div>
+        <div class="comment-section" id="comments-${p.id}">
+          ${p.comments.map(c=>`<div class="comment-item"><div class="avatar avatar-sm" style="background:var(--gradient-purple);flex-shrink:0">${c.name[0]}</div><div class="comment-bubble"><div class="comment-author">${c.name}</div><div class="comment-text">${c.text}</div></div></div>`).join('')}
+          <div class="comment-input-row">
+            <div class="avatar avatar-sm" style="background:var(--gradient-rose);flex-shrink:0">Y</div>
+            <input type="text" placeholder="Add a comment..." id="cinput-${p.id}" onkeydown="if(event.key==='Enter')addComment(${p.id})"/>
+            <button class="btn btn-primary btn-sm" onclick="addComment(${p.id})"><i class="fa-solid fa-paper-plane"></i></button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+  renderPosts();
+
+  const liked = new Set();
+  function toggleLike(id, base) {
+    const btn = document.getElementById('like-'+id);
+    const cnt = document.getElementById('likeCount-'+id);
+    if (liked.has(id)) { liked.delete(id); btn.classList.remove('liked'); cnt.textContent = base; }
+    else { liked.add(id); btn.classList.add('liked'); cnt.textContent = base+1; }
+  }
+  function toggleComments(id) { document.getElementById('comments-'+id).classList.toggle('open'); }
+  function addComment(id) {
+    const input = document.getElementById('cinput-'+id);
+    if (!input.value.trim()) return;
+    const comment = document.createElement('div');
+    comment.className = 'comment-item';
+    comment.innerHTML = `<div class="avatar avatar-sm" style="background:var(--gradient-rose);flex-shrink:0">Y</div><div class="comment-bubble"><div class="comment-author">You</div><div class="comment-text">${input.value}</div></div>`;
+    document.getElementById('comments-'+id).insertBefore(comment, document.getElementById('cinput-'+id).closest('.comment-input-row'));
+    input.value = ''; showToast('Comment posted!', 'success');
+  }
+  function sharePost(id) { navigator.clipboard?.writeText(window.location.href+'#post-'+id); showToast('Link copied!', 'success'); }
+
+  function createPost() {
+    const text = document.getElementById('newPostText').value.trim();
+    if (!text) { showToast('Write something first!', 'error'); return; }
+    const newPost = { id: Date.now(), name:'You', avatar:'Y', bg:'var(--gradient-rose)', role:'', time:'Just now', type:postFilter, emoji:'✨', text, likes:0, comments:[] };
+    POSTS.unshift(newPost);
+    renderPosts();
+    document.getElementById('newPostText').value = '';
+    showToast('Post shared with the community! 🎉', 'success');
+  }
+
+  // Leaderboard
+  const leaders = [
+    {name:'Suresh Patel', meals:48, avatar:'S', bg:'var(--gradient-purple)'},
+    {name:'Ananya NGO', meals:35, avatar:'A', bg:'var(--gradient-emerald)'},
+    {name:'You', meals:24, avatar:'Y', bg:'var(--gradient-rose)'},
+    {name:'Priya Store', meals:19, avatar:'P', bg:'var(--gradient-amber)'},
+    {name:'Meera H.', meals:15, avatar:'M', bg:'var(--gradient-purple)'},
+  ];
+  const medals = ['🥇','🥈','🥉','4.','5.'];
+  document.getElementById('leaderboard').innerHTML = leaders.map((l,i)=>`
+    <div class="leaderboard-item">
+      <div class="leaderboard-rank">${medals[i]}</div>
+      <div class="avatar avatar-sm" style="background:${l.bg}">${l.avatar}</div>
+      <div style="flex:1"><div style="font-weight:700;font-size:0.85rem;font-family:var(--font-main)">${l.name}</div><div style="font-size:0.72rem;color:var(--text-muted)">${l.meals} meals</div></div>
+    </div>`).join('');
+
+  // Stories List
+  const stories = [
+    {emoji:'🌟',title:'500 Meals Milestone!',sub:'Ananya NGO · 2h ago'},
+    {emoji:'🏃',title:'Lost 8kg with NoGirr Diet',sub:'Priya R. · 1 day ago'},
+    {emoji:'🍛',title:'Restaurant to Community',sub:'Suresh P. · 3 days ago'},
+  ];
+  document.getElementById('storiesList').innerHTML = stories.map(s=>`
+    <div class="story-card">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:1.6rem">${s.emoji}</div>
+        <div><div style="font-weight:700;font-size:0.82rem;font-family:var(--font-main)">${s.title}</div><div style="font-size:0.72rem;color:var(--text-muted)">${s.sub}</div></div>
+      </div>
+    </div>`).join('');
+
+  // Reviews
+  const REVIEWS = [
+    {name:'Priya R.', avatar:'P', bg:'var(--gradient-rose)', donor:'Suresh Patel', rating:5, text:'"The food was fresh and warm. Suresh donated a full meal for my family when we needed it most. True hero!"', time:'2 days ago'},
+    {name:'Karthik M.', avatar:'K', bg:'var(--gradient-purple)', donor:'Ananya NGO', rating:5, text:'"Outstanding organisation! Always on time and the food quality is exceptional. 5 stars every time!"', time:'3 days ago'},
+    {name:'Ramesh B.', avatar:'R', bg:'var(--gradient-emerald)', donor:'Priya Store', rating:4, text:'"Fresh vegetables every morning. Very helpful and friendly. Slightly late once but overall great experience."', time:'1 week ago'},
+  ];
+  document.getElementById('reviewsList').innerHTML = REVIEWS.map(r=>`
+    <div class="donor-review">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div class="avatar avatar-sm" style="background:${r.bg}">${r.avatar}</div>
+        <div style="flex:1"><div style="font-weight:700;font-size:0.875rem;font-family:var(--font-main)">${r.name}</div><div style="font-size:0.72rem;color:var(--text-muted)">Reviewed: <strong style="color:var(--text-secondary)">${r.donor}</strong> · ${r.time}</div></div>
+        <div class="stars">${'<i class="fa-solid fa-star"></i>'.repeat(r.rating)}</div>
+      </div>
+      <p style="font-size:0.85rem;color:var(--text-secondary);line-height:1.6;font-style:italic">${r.text}</p>
+    </div>`).join('');
+
+  // Chat
+  const CHATS = [
+    {name:'Raj Kumar', avatar:'R', bg:'var(--gradient-purple)', last:'Sure, I\'ll be at the spot in 10min', time:'2m', online:true},
+    {name:'Ananya NGO', avatar:'A', bg:'var(--gradient-emerald)', last:'Thank you! The biryani was amazing', time:'1h', online:true},
+    {name:'Priya Store', avatar:'P', bg:'var(--gradient-rose)', last:'Available veggies tomorrow morning', time:'3h', online:false},
+    {name:'Meera Singh', avatar:'M', bg:'var(--gradient-amber)', last:'Great tip on the lentils!', time:'Yesterday', online:false},
+  ];
+  document.getElementById('chatList').innerHTML = CHATS.map(c=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;transition:var(--transition);border-bottom:1px solid var(--glass-border)" onclick="openChat('${c.name}')">
+      <div style="position:relative">
+        <div class="avatar avatar-sm" style="background:${c.bg}">${c.avatar}</div>
+        ${c.online?'<div style="position:absolute;bottom:0;right:0;width:8px;height:8px;border-radius:50%;background:var(--emerald);border:2px solid var(--bg-secondary)"></div>':''}
+      </div>
+      <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:0.85rem;font-family:var(--font-main)">${c.name}</div><div style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.last}</div></div>
+      <div style="font-size:0.7rem;color:var(--text-muted)">${c.time}</div>
+    </div>`).join('');
+
+  const CHAT_MSGS = [
+    {fromMe:false, text:'Hi! I saw your donation listing. Is the biryani still available?', time:'2:30 PM'},
+    {fromMe:true, text:'Yes! Still have 8 servings left. Come to Anna Nagar signal.', time:'2:31 PM'},
+    {fromMe:false, text:'Perfect! I will be there in 15 minutes. Thank you so much! 🙏', time:'2:33 PM'},
+    {fromMe:true, text:'Take your time. I will wait. Brought extra containers too!', time:'2:34 PM'},
+    {fromMe:false, text:'Sure, I\'ll be at the spot in 10min', time:'2:38 PM'},
+  ];
+
+  function renderChatMsgs(extra=[]) {
+    const all = [...CHAT_MSGS, ...extra];
+    document.getElementById('chatMessages').innerHTML = all.map(m=>`
+      <div style="display:flex;justify-content:${m.fromMe?'flex-end':'flex-start'}">
+        <div style="max-width:70%;padding:10px 14px;border-radius:${m.fromMe?'var(--radius-md) 4px var(--radius-md) var(--radius-md)':'4px var(--radius-md) var(--radius-md) var(--radius-md)'};background:${m.fromMe?'rgba(124,58,237,0.25)':'rgba(255,255,255,0.06)'};border:1px solid ${m.fromMe?'rgba(124,58,237,0.3)':'var(--glass-border)'};font-size:0.875rem;line-height:1.5">
+          ${m.text}
+          <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;text-align:right">${m.time}</div>
+        </div>
+      </div>`).join('');
+    const msgs = document.getElementById('chatMessages');
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+  renderChatMsgs();
+
+  const extraMsgs = [];
+  function sendMsg() {
+    const input = document.getElementById('chatInput');
+    if (!input.value.trim()) return;
+    const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    extraMsgs.push({fromMe:true, text:input.value, time:now});
+    renderChatMsgs(extraMsgs);
+    const typed = input.value; input.value = '';
+    setTimeout(()=>{
+      const replies = ['Got it! 👍','On my way!','Thank you so much! 🙏','That\'s very kind of you!','Amazing! See you soon.'];
+      extraMsgs.push({fromMe:false, text:replies[Math.floor(Math.random()*replies.length)], time:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})});
+      renderChatMsgs(extraMsgs);
+    }, 1200);
+  }
+  function openChat(name) { showToast(`Chat with ${name} opened`, 'info'); }
+
+  // Reviews
+  let userRating = 5;
+  function setRating(r) { userRating = r; document.getElementById('starPicker').querySelectorAll('span').forEach((s,i)=>{ s.style.opacity = i<r?'1':'0.3'; }); }
+  function submitReview() {
+    const donor = document.getElementById('reviewDonor').value;
+    const text = document.getElementById('reviewText').value;
+    if (!donor||!text) { showToast('Please fill all fields','error'); return; }
+    closeModal('reviewModal');
+    showToast('Review submitted! Thank you 🌟','success');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NoGirr — My Profile</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="stylesheet" href="../css/app.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .profile-cover {
+      height: 220px;
+      background: linear-gradient(135deg,#7c3aed 0%,#f43f5e 50%,#10b981 100%);
+      border-radius: var(--radius-xl);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 80px;
+    }
+    .profile-cover-pattern {
+      position: absolute; inset: 0;
+      background-image: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 40%);
+    }
+    .profile-avatar-wrap {
+      position: absolute;
+      bottom: -60px; left: 40px;
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      background: var(--gradient-purple);
+      border: 4px solid var(--bg-primary);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-main); font-weight: 900; font-size: 2.5rem;
+      color: white; cursor: pointer; transition: var(--transition);
+    }
+    .profile-avatar-wrap:hover { transform: scale(1.05); }
+    .profile-avatar-wrap input { position: absolute; inset: 0; opacity: 0; cursor: pointer; border-radius: 50%; }
+    .profile-avatar-edit {
+      position: absolute; bottom: 4px; right: 4px;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--purple); border: 2px solid var(--bg-primary);
+      display: flex; align-items: center; justify-content: center; font-size: 0.7rem;
+    }
+    .profile-info-row {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      flex-wrap: wrap; gap: 16px; margin-bottom: 32px;
+    }
+    .profile-name { font-family: var(--font-main); font-size: 1.8rem; font-weight: 900; }
+    .profile-role { font-size: 0.875rem; color: var(--text-secondary); margin-top: 4px; }
+    .profile-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .achievement-card {
+      background: var(--glass); border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg); padding: 20px; text-align: center;
+      transition: var(--transition);
+    }
+    .achievement-card:hover { transform: translateY(-4px); border-color: rgba(124,58,237,0.3); }
+    .achievement-icon { font-size: 2.5rem; margin-bottom: 10px; }
+    .achievement-name { font-family: var(--font-main); font-weight: 700; font-size: 0.875rem; margin-bottom: 4px; }
+    .achievement-desc { font-size: 0.72rem; color: var(--text-muted); }
+    .setting-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-label { font-size: 0.875rem; font-weight: 600; }
+    .setting-desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+    .donation-history-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .donation-history-item:last-child { border-bottom: none; }
+    .lang-option {
+      padding: 10px 16px; border-radius: var(--radius-md); border: 1px solid var(--glass-border);
+      background: var(--glass); cursor: pointer; transition: var(--transition);
+      display: flex; align-items: center; gap: 10px; font-size: 0.875rem; font-weight: 600;
+    }
+    .lang-option.selected { border-color: var(--purple); background: rgba(124,58,237,0.15); color: var(--purple-light); }
+    .lang-option:hover { border-color: var(--purple-light); }
+  </style>
+</head>
+<body>
+<nav class="navbar" id="appNavbar"></nav>
+<div class="app-layout">
+  <aside class="sidebar"><nav class="sidebar-nav" id="appSidebar"></nav><div id="sidebarUser"></div></aside>
+  <main class="main-content">
+
+    <!-- Cover -->
+    <div class="profile-cover">
+      <div class="profile-cover-pattern"></div>
+      <div class="profile-avatar-wrap" id="avatarWrap">
+        <span id="avatarLetter">Y</span>
+        <div class="profile-avatar-edit"><i class="fa-solid fa-camera"></i></div>
+      </div>
+    </div>
+
+    <!-- Profile Info Row -->
+    <div class="profile-info-row">
+      <div>
+        <div class="profile-name" id="profileName">Loading...</div>
+        <div class="profile-role" id="profileRole"></div>
+        <div class="profile-badges" id="profileBadges"></div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" onclick="switchProfileTab('settings', document.querySelector('.tab-btn:last-child'))"><i class="fa-solid fa-gear"></i> Settings</button>
+        <button class="btn btn-primary" onclick="saveProfile()"><i class="fa-solid fa-save"></i> Save Profile</button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs" style="margin-bottom:28px;width:fit-content">
+      <button class="tab-btn active" onclick="switchProfileTab('overview',this)">📊 Overview</button>
+      <button class="tab-btn" onclick="switchProfileTab('edit',this)">✏️ Edit Profile</button>
+      <button class="tab-btn" onclick="switchProfileTab('history',this)">📋 History</button>
+      <button class="tab-btn" onclick="switchProfileTab('settings',this)">⚙️ Settings</button>
+    </div>
+
+    <!-- OVERVIEW TAB -->
+    <div class="tab-content active" id="ptab-overview">
+      <div class="content-row">
+        <!-- Stats -->
+        <div>
+          <div class="dashboard-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:24px">
+            <div class="quick-stat" style="--stat-clr:var(--purple)"><div class="stat-icon-wrap" style="background:rgba(124,58,237,0.15)"><i class="fa-solid fa-utensils" style="color:var(--purple-light)"></i></div><div class="stat-info"><div class="stat-value" style="color:var(--purple-light)">24</div><div class="stat-name">Meals Donated</div></div></div>
+            <div class="quick-stat" style="--stat-clr:var(--rose)"><div class="stat-icon-wrap" style="background:rgba(244,63,94,0.15)"><i class="fa-solid fa-people-group" style="color:var(--rose-light)"></i></div><div class="stat-info"><div class="stat-value" style="color:var(--rose-light)">89</div><div class="stat-name">People Fed</div></div></div>
+            <div class="quick-stat" style="--stat-clr:var(--emerald)"><div class="stat-icon-wrap" style="background:rgba(16,185,129,0.15)"><i class="fa-solid fa-fire" style="color:var(--emerald-light)"></i></div><div class="stat-info"><div class="stat-value" style="color:var(--emerald-light)">1,840</div><div class="stat-name">Avg Daily Kcal</div></div></div>
+            <div class="quick-stat" style="--stat-clr:var(--amber)"><div class="stat-icon-wrap" style="background:rgba(245,158,11,0.15)"><i class="fa-solid fa-star" style="color:var(--amber-light)"></i></div><div class="stat-info"><div class="stat-value" style="color:var(--amber-light)">4.9</div><div class="stat-name">Donor Rating</div></div></div>
+          </div>
+          <!-- Monthly Activity Chart -->
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title"><i class="fa-solid fa-chart-line" style="color:var(--purple-light)"></i> Monthly Donations</div></div>
+            <canvas id="profileChart" height="160"></canvas>
+          </div>
+        </div>
+        <!-- Achievements -->
+        <div>
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title"><i class="fa-solid fa-medal" style="color:var(--amber-light)"></i> Achievements</div></div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px" id="achievementGrid"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EDIT PROFILE TAB -->
+    <div class="tab-content" id="ptab-edit">
+      <div class="content-row">
+        <div class="panel">
+          <div class="panel-title mb-6"><i class="fa-solid fa-user" style="color:var(--purple-light)"></i> Personal Information</div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Full Name</label><input type="text" class="form-input" id="editName" placeholder="Your full name"/></div>
+            <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="editEmail" placeholder="Email address"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Phone</label><input type="tel" class="form-input" id="editPhone" placeholder="+91 98765 43210"/></div>
+            <div class="form-group"><label class="form-label">City</label><input type="text" class="form-input" id="editCity" placeholder="Your city"/></div>
+          </div>
+          <div class="form-group"><label class="form-label">Bio</label><textarea class="form-input" id="editBio" rows="3" placeholder="Tell the community about yourself..."></textarea></div>
+          <div class="form-group">
+            <label class="form-label">Role</label>
+            <div style="display:flex;gap:10px">
+              <div class="role-card" id="roleDonor" onclick="toggleRole('donor')" style="padding:12px 20px;flex:1;text-align:center;border-radius:var(--radius-md);border:2px solid var(--glass-border);cursor:pointer;transition:var(--transition)">🤲 Donor</div>
+              <div class="role-card" id="roleRecipient" onclick="toggleRole('recipient')" style="padding:12px 20px;flex:1;text-align:center;border-radius:var(--radius-md);border:2px solid var(--glass-border);cursor:pointer;transition:var(--transition)">🍽️ Recipient</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-title mb-6"><i class="fa-solid fa-heart-pulse" style="color:var(--rose-light)"></i> Health Profile</div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Age</label><input type="number" class="form-input" id="editAge" placeholder="25" value="25"/></div>
+            <div class="form-group"><label class="form-label">Weight (kg)</label><input type="number" class="form-input" id="editWeight" placeholder="70" value="70"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Height (cm)</label><input type="number" class="form-input" id="editHeight" placeholder="170" value="170"/></div>
+            <div class="form-group"><label class="form-label">Blood Group</label><select class="form-input" id="editBlood"><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>O+</option><option>O-</option><option>AB+</option><option>AB-</option></select></div>
+          </div>
+          <div class="form-group"><label class="form-label">Health Goal</label>
+            <select class="form-input" id="editGoal">
+              <option value="weightLoss">Lose Weight</option>
+              <option value="balanced" selected>Stay Balanced</option>
+              <option value="muscleGain">Gain Muscle</option>
+              <option value="diabetic">Manage Diabetes</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Dietary Preferences</label>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer"><input type="checkbox" style="accent-color:var(--purple)"/> Vegetarian</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer"><input type="checkbox" style="accent-color:var(--purple)"/> Vegan</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer"><input type="checkbox" style="accent-color:var(--purple)"/> Gluten-Free</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer"><input type="checkbox" style="accent-color:var(--purple)"/> Halal</label>
+            </div>
+          </div>
+          <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:var(--radius-md);padding:14px;margin-top:8px">
+            <div style="font-weight:700;font-size:0.875rem;margin-bottom:6px;font-family:var(--font-main)">📊 Auto-Calculated</div>
+            <div style="display:flex;gap:20px;font-size:0.82rem;color:var(--text-secondary)">
+              <span>BMI: <strong style="color:var(--emerald-light)" id="calcBMI">24.2</strong></span>
+              <span>BMR: <strong style="color:var(--purple-light)" id="calcBMR">1,680 kcal</strong></span>
+              <span>Goal: <strong style="color:var(--amber-light)" id="calcGoal">2,000 kcal/day</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY TAB -->
+    <div class="tab-content" id="ptab-history">
+      <div class="content-row">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><i class="fa-solid fa-hand-holding-heart" style="color:var(--rose-light)"></i> Donation History</div><span class="badge badge-purple">24 total</span></div>
+          <div id="donationHistory"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title"><i class="fa-solid fa-fire" style="color:var(--amber-light)"></i> Calorie History</div><span class="badge badge-emerald">Last 7 days</span></div>
+          <canvas id="historyCalChart" height="200"></canvas>
+          <div style="margin-top:16px">
+            <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:8px"><span style="color:var(--text-muted)">Weekly Average</span><strong style="color:var(--purple-light)">1,868 kcal</strong></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:8px"><span style="color:var(--text-muted)">Best Day</span><strong style="color:var(--emerald-light)">Wednesday (right on goal!)</strong></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.8rem"><span style="color:var(--text-muted)">Streak</span><strong style="color:var(--amber-light)">🔥 5 days logged</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div class="tab-content" id="ptab-settings">
+      <div class="content-row">
+        <div class="panel">
+          <div class="panel-title mb-4"><i class="fa-solid fa-bell" style="color:var(--amber-light)"></i> Notifications</div>
+          <div class="setting-row">
+            <div><div class="setting-label">Food Nearby Alerts</div><div class="setting-desc">Get notified when food is available within 5km</div></div>
+            <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Calorie Goal Reminders</div><div class="setting-desc">Daily reminder to log your meals</div></div>
+            <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Community Updates</div><div class="setting-desc">New posts and comments in your community</div></div>
+            <label class="toggle"><input type="checkbox"/><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Donation Requests</div><div class="setting-desc">People requesting food near your location</div></div>
+            <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+          </div>
+          <div class="panel-title mb-4 mt-8"><i class="fa-solid fa-language" style="color:var(--emerald-light)"></i> Language</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px" id="langGrid"></div>
+        </div>
+        <div>
+          <div class="panel mb-6">
+            <div class="panel-title mb-4"><i class="fa-solid fa-shield-halved" style="color:var(--purple-light)"></i> Privacy & Security</div>
+            <div class="setting-row">
+              <div><div class="setting-label">Show Profile Publicly</div><div class="setting-desc">Allow others to see your donation profile</div></div>
+              <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">Share Live Location</div><div class="setting-desc">When donating, share live GPS with recipients</div></div>
+              <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">Two-Factor Auth</div><div class="setting-desc">Extra security for your account</div></div>
+              <label class="toggle"><input type="checkbox"/><span class="toggle-slider"></span></label>
+            </div>
+            <button class="btn btn-ghost w-full" style="justify-content:center;margin-top:16px" onclick="showToast('Password reset email sent!','success')"><i class="fa-solid fa-key"></i> Change Password</button>
+          </div>
+          <div class="panel">
+            <div class="panel-title mb-4"><i class="fa-solid fa-trash" style="color:var(--rose-light)"></i> Danger Zone</div>
+            <button class="btn w-full" style="justify-content:center;background:rgba(244,63,94,0.15);color:var(--rose-light);border:1px solid rgba(244,63,94,0.3)" onclick="showToast('Account deletion requested. Check your email.','warning')">
+              <i class="fa-solid fa-triangle-exclamation"></i> Delete Account
+            </button>
+            <button class="btn btn-ghost w-full" style="justify-content:center;margin-top:8px" onclick="NoGirr.logout()">
+              <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+<script src="../js/app.js"></script>
+<script>
+  buildNavbar('');
+  buildSidebar('My Profile');
+
+  const user = NoGirr.user || { name:'NoGirr User', email:'user@nogirr.com', role:'donor', health:{ age:25, weight:70, height:170, goal:'balanced' } };
+
+  // Fill profile
+  document.getElementById('profileName').textContent = user.name;
+  document.getElementById('profileRole').textContent = `${user.role === 'donor' ? '🤲 Donor' : user.role === 'admin' ? '🛡️ Admin' : '🍽️ Recipient'} · Member since ${new Date(user.joined||Date.now()).toLocaleDateString('en-IN',{month:'long',year:'numeric'})}`;
+  document.getElementById('avatarLetter').textContent = (user.name||'U')[0].toUpperCase();
+  document.getElementById('profileBadges').innerHTML = `<span class="badge badge-purple">🏅 Top Donor</span><span class="badge badge-emerald">✅ Verified</span><span class="badge badge-amber">🔥 5-Day Streak</span>`;
+
+  // Set form defaults
+  if(document.getElementById('editName')) document.getElementById('editName').value = user.name || '';
+  if(document.getElementById('editEmail')) document.getElementById('editEmail').value = user.email || '';
+  if(document.getElementById('editAge') && user.health) document.getElementById('editAge').value = user.health.age || 25;
+  if(document.getElementById('editWeight') && user.health) document.getElementById('editWeight').value = user.health.weight || 70;
+  if(document.getElementById('editHeight') && user.health) document.getElementById('editHeight').value = user.health.height || 170;
+
+  function switchProfileTab(id, btn) {
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('ptab-'+id).classList.add('active');
+    if(btn) btn.classList.add('active');
+  }
+  function toggleRole(role) {
+    document.getElementById('roleDonor').style.borderColor = role==='donor'?'var(--purple)':'var(--glass-border)';
+    document.getElementById('roleRecipient').style.borderColor = role==='recipient'?'var(--purple)':'var(--glass-border)';
+    document.getElementById('roleDonor').style.background = role==='donor'?'rgba(124,58,237,0.15)':'var(--glass)';
+    document.getElementById('roleRecipient').style.background = role==='recipient'?'rgba(124,58,237,0.15)':'var(--glass)';
+  }
+  toggleRole(user.role);
+
+  function saveProfile() {
+    if(document.getElementById('editName').value) { user.name = document.getElementById('editName').value; NoGirr.user = user; NoGirr.save(); }
+    showToast('Profile saved successfully! ✅','success');
+    document.getElementById('profileName').textContent = user.name;
+  }
+
+  // Achievements
+  const ACHIEVEMENTS = [
+    {icon:'🥇',name:'First Donation',desc:'Made your first food donation',unlocked:true},
+    {icon:'🏅',name:'10 Meals',desc:'Donated 10 meals total',unlocked:true},
+    {icon:'⭐',name:'5-Star Donor',desc:'Received your first 5★ review',unlocked:true},
+    {icon:'🔥',name:'Week Streak',desc:'Logged meals 7 days in a row',unlocked:true},
+    {icon:'🌟',name:'Community Star',desc:'50 likes on your posts',unlocked:true},
+    {icon:'🏆',name:'50 Meals',desc:'Donate 50 meals to unlock',unlocked:false},
+    {icon:'💪',name:'Health Master',desc:'Log meals for 30 days',unlocked:false},
+    {icon:'🌍',name:'City Hero',desc:'Help 100 people',unlocked:false},
+    {icon:'👑',name:'Top Donor',desc:'Rank #1 in your city',unlocked:false},
+  ];
+  document.getElementById('achievementGrid').innerHTML = ACHIEVEMENTS.map(a=>`
+    <div class="achievement-card" style="${a.unlocked?'':'opacity:0.4;filter:grayscale(1)'}">
+      <div class="achievement-icon">${a.icon}</div>
+      <div class="achievement-name">${a.name}</div>
+      <div class="achievement-desc">${a.desc}</div>
+      ${a.unlocked?'<div style="margin-top:8px;font-size:0.7rem;color:var(--emerald-light);font-weight:700">✓ Unlocked</div>':'<div style="margin-top:8px;font-size:0.7rem;color:var(--text-muted)">Locked 🔒</div>'}
+    </div>`).join('');
+
+  // Donation History
+  const HISTORY = [
+    {emoji:'🍱',name:'Chicken Biryani',qty:'10 servings',date:'Today',people:8,free:true},
+    {emoji:'🥦',name:'Fresh Vegetables',qty:'3 kg',date:'Yesterday',people:4,free:true},
+    {emoji:'🫓',name:'Idli & Sambar',qty:'20 pieces',date:'2 days ago',people:6,free:false,price:20},
+    {emoji:'🍞',name:'Bread & Butter',qty:'4 loaves',date:'3 days ago',people:3,free:true},
+    {emoji:'🍚',name:'Rice & Dal',qty:'15 servings',date:'1 week ago',people:12,free:true},
+  ];
+  document.getElementById('donationHistory').innerHTML = HISTORY.map(h=>`
+    <div class="donation-history-item">
+      <div style="font-size:1.8rem;flex-shrink:0">${h.emoji}</div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:0.875rem;font-family:var(--font-main)">${h.name}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted)">${h.date} · ${h.qty} · ${h.people} people fed</div>
+      </div>
+      ${h.free ? '<span class="badge badge-free">FREE</span>' : `<span class="badge badge-paid">₹${h.price}</span>`}
+    </div>`).join('');
+
+  // Language Grid
+  const LANGUAGES = [{code:'EN',name:'English',flag:'🇬🇧'},{code:'HI',name:'हिंदी',flag:'🇮🇳'},{code:'TA',name:'தமிழ்',flag:'🇮🇳'},{code:'TE',name:'తెలుగు',flag:'🇮🇳'},{code:'FR',name:'Français',flag:'🇫🇷'},{code:'AR',name:'عربي',flag:'🇸🇦'}];
+  let selLang = 'EN';
+  document.getElementById('langGrid').innerHTML = LANGUAGES.map(l=>`
+    <div class="lang-option ${l.code===selLang?'selected':''}" id="lang-${l.code}" onclick="selectLang('${l.code}')">
+      <span>${l.flag}</span><span>${l.name}</span>
+    </div>`).join('');
+  function selectLang(code) {
+    selLang = code; document.querySelectorAll('.lang-option').forEach(el=>el.classList.remove('selected'));
+    document.getElementById('lang-'+code).classList.add('selected');
+    NoGirr.lang = code; localStorage.setItem('nogirr_lang', code);
+    showToast(`Language set to ${code}`, 'success');
+  }
+
+  // Charts
+  const profileCtx = document.getElementById('profileChart').getContext('2d');
+  new Chart(profileCtx,{
+    type:'line',
+    data:{labels:['Jan','Feb','Mar','Apr','May','Jun'],datasets:[{label:'Meals',data:[2,5,8,12,18,24],borderColor:'rgba(124,58,237,0.8)',backgroundColor:'rgba(124,58,237,0.1)',tension:0.4,fill:true,pointBackgroundColor:'rgba(124,58,237,0.8)',pointRadius:5}]},
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'#0f0f1a',titleColor:'#f1f5f9',bodyColor:'#94a3b8'}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#94a3b8'}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#94a3b8'},beginAtZero:true}}}
+  });
+
+  const histCtx = document.getElementById('historyCalChart').getContext('2d');
+  new Chart(histCtx,{
+    type:'bar',
+    data:{labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],datasets:[{label:'Calories',data:[1820,2100,2000,2050,1900,1700,1240],backgroundColor:(ctx)=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,200);g.addColorStop(0,'rgba(16,185,129,0.8)');g.addColorStop(1,'rgba(16,185,129,0.2)');return g;},borderRadius:6,borderSkipped:false}]},
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'#0f0f1a',titleColor:'#f1f5f9',bodyColor:'#94a3b8'}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#94a3b8'}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#94a3b8'},min:1000}}}
+  });
+</script>
+</body>
+</html>

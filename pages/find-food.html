@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NoGirr — Find Food Near Me</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link rel="stylesheet" href="../css/app.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    .map-page { display:flex; height:calc(100vh - var(--navbar-height)); overflow:hidden; }
+    .map-sidebar {
+      width:380px; flex-shrink:0; background:var(--bg-secondary);
+      border-right:1px solid var(--glass-border); display:flex; flex-direction:column; overflow:hidden;
+    }
+    .map-sidebar-header { padding:20px; border-bottom:1px solid var(--glass-border); }
+    .map-sidebar-title { font-family:var(--font-main); font-weight:800; font-size:1.2rem; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+    .map-controls { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+    .map-control-btn {
+      padding:6px 14px; border-radius:var(--radius-full); font-size:0.78rem; font-weight:600;
+      background:var(--glass); border:1px solid var(--glass-border); color:var(--text-secondary);
+      cursor:pointer; transition:var(--transition); font-family:var(--font-main);
+    }
+    .map-control-btn.active, .map-control-btn:hover { background:rgba(124,58,237,0.2); border-color:var(--purple); color:var(--purple-light); }
+    .map-list { flex:1; overflow-y:auto; padding:16px; }
+    .map-food-card {
+      background:var(--glass); border:1px solid var(--glass-border); border-radius:var(--radius-lg);
+      padding:16px; margin-bottom:12px; cursor:pointer; transition:var(--transition);
+    }
+    .map-food-card:hover, .map-food-card.active { border-color:rgba(124,58,237,0.4); background:rgba(124,58,237,0.06); }
+    .map-food-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+    .map-food-emoji { font-size:1.8rem; flex-shrink:0; }
+    .map-food-name { font-weight:700; font-size:0.9rem; font-family:var(--font-main); }
+    .map-food-donor { font-size:0.75rem; color:var(--text-muted); }
+    .map-food-tags { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+    .map-food-footer { display:flex; align-items:center; justify-content:space-between; }
+    .dist-badge { display:flex; align-items:center; gap:4px; font-size:0.78rem; color:var(--text-secondary); }
+    .map-wrap { flex:1; position:relative; }
+    #map { width:100%; height:100%; }
+    .map-overlay-controls {
+      position:absolute; top:16px; right:16px; z-index:1000; display:flex; flex-direction:column; gap:8px;
+    }
+    .map-overlay-btn {
+      background:var(--bg-secondary); border:1px solid var(--glass-border); border-radius:var(--radius-md);
+      padding:10px 16px; display:flex; align-items:center; gap:8px; color:var(--text-primary);
+      font-size:0.8rem; font-weight:600; cursor:pointer; transition:var(--transition); white-space:nowrap;
+    }
+    .map-overlay-btn:hover { border-color:var(--purple-light); color:var(--purple-light); }
+    .map-overlay-btn.active { background:rgba(124,58,237,0.2); border-color:var(--purple); color:var(--purple-light); }
+    .map-radius-label {
+      position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
+      z-index:1000; background:rgba(8,8,16,0.85); border:1px solid var(--glass-border);
+      border-radius:var(--radius-full); padding:8px 20px; font-size:0.8rem; color:var(--text-secondary);
+      display:flex; align-items:center; gap:8px;
+    }
+    .detail-panel {
+      position:absolute; bottom:0; left:0; right:0; z-index:2000;
+      background:var(--bg-secondary); border-top:1px solid var(--glass-border);
+      border-radius:var(--radius-xl) var(--radius-xl) 0 0;
+      padding:24px; transform:translateY(100%); transition:transform 0.4s cubic-bezier(0.4,0,0.2,1);
+    }
+    .detail-panel.open { transform:translateY(0); }
+    .detail-handle { width:40px; height:4px; background:var(--glass-border); border-radius:2px; margin:0 auto 20px; }
+    @media(max-width:768px){ .map-sidebar{display:none} .map-page{flex-direction:column} }
+  </style>
+</head>
+<body>
+<nav class="navbar" id="appNavbar"></nav>
+
+<div class="map-page" style="margin-top:var(--navbar-height)">
+  <!-- Sidebar List -->
+  <div class="map-sidebar">
+    <div class="map-sidebar-header">
+      <div class="map-sidebar-title"><i class="fa-solid fa-map-location-dot" style="color:var(--emerald-light)"></i> Food Near You</div>
+      <div class="search-bar">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" placeholder="Search food, donor..." id="foodSearch" oninput="filterFoodList(this.value)"/>
+      </div>
+      <div class="map-controls">
+        <button class="map-control-btn active" onclick="filterType(this,'all')">All</button>
+        <button class="map-control-btn" onclick="filterType(this,'free')">🟢 Free</button>
+        <button class="map-control-btn" onclick="filterType(this,'paid')">🟡 Paid</button>
+        <button class="map-control-btn" onclick="filterType(this,'cooked')">🍛 Cooked</button>
+        <button class="map-control-btn" onclick="filterType(this,'raw')">🥦 Raw</button>
+        <button class="map-control-btn" onclick="filterType(this,'live')"><span class="live-dot" style="display:inline-block"></span> Live</button>
+      </div>
+      <div style="margin-top:12px;font-size:0.8rem;color:var(--text-secondary)">
+        <i class="fa-solid fa-circle-info" style="color:var(--purple-light)"></i>
+        Showing <strong id="foodCount" style="color:var(--text-primary)">6</strong> donations within <strong style="color:var(--emerald-light)">5km</strong>
+      </div>
+    </div>
+    <div class="map-list" id="foodList"></div>
+  </div>
+
+  <!-- Map -->
+  <div class="map-wrap">
+    <div id="map"></div>
+
+    <!-- Map Controls -->
+    <div class="map-overlay-controls">
+      <button class="map-overlay-btn" id="liveBtn" onclick="toggleLiveTrack()">
+        <span class="live-dot"></span> Live Track Me
+      </button>
+      <button class="map-overlay-btn" onclick="setRadius(2)">2km Radius</button>
+      <button class="map-overlay-btn active" onclick="setRadius(5)">5km Radius</button>
+      <button class="map-overlay-btn" onclick="setRadius(10)">10km Radius</button>
+    </div>
+
+    <div class="map-radius-label">
+      <i class="fa-solid fa-circle-dot" style="color:var(--purple-light)"></i>
+      <span id="radiusLabel">Searching within 5km radius</span>
+      <span class="live-dot"></span>
+    </div>
+
+    <!-- Detail Panel (slides up on card click) -->
+    <div class="detail-panel" id="detailPanel" style="position:absolute">
+      <div class="detail-handle"></div>
+      <div id="detailContent"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="../js/app.js"></script>
+<script>
+  buildNavbar('Find Food');
+
+  // Center: Chennai
+  const CENTER = [13.0827, 80.2707];
+  let currentRadius = 5000;
+  let userMarker = null, radiusCircle = null;
+  let activeType = 'all';
+  let markers = [];
+  let selectedId = null;
+
+  // Init Map
+  const map = L.map('map', { center: CENTER, zoom: 13, zoomControl: false });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap © CartoDB', maxZoom: 19
+  }).addTo(map);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+  // Custom Icons
+  function makeIcon(emoji, isLive) {
+    return L.divIcon({
+      className: '',
+      html: `<div style="background:${isLive?'rgba(16,185,129,0.9)':'rgba(124,58,237,0.9)'};
+        border:2px solid ${isLive?'var(--emerald)':'var(--purple)'};
+        border-radius:50% 50% 50% 0;transform:rotate(-45deg);width:44px;height:44px;
+        display:flex;align-items:center;justify-content:center;
+        box-shadow:0 4px 20px ${isLive?'rgba(16,185,129,0.5)':'rgba(124,58,237,0.5)'}">
+        <span style="transform:rotate(45deg);font-size:1.2rem">${emoji}</span></div>`,
+      iconSize: [44, 44], iconAnchor: [22, 44], popupAnchor: [0, -44]
+    });
+  }
+
+  // User location icon
+  function makeUserIcon() {
+    return L.divIcon({
+      className: '',
+      html: `<div style="width:20px;height:20px;background:var(--purple);border:3px solid white;
+        border-radius:50%;box-shadow:0 0 20px rgba(124,58,237,0.8);
+        animation:none"></div>`,
+      iconSize: [20, 20], iconAnchor: [10, 10]
+    });
+  }
+
+  // Draw radius
+  function drawRadius(lat, lng, r) {
+    if (radiusCircle) map.removeLayer(radiusCircle);
+    radiusCircle = L.circle([lat, lng], {
+      radius: r, color: 'rgba(124,58,237,0.8)', weight: 2,
+      fillColor: 'rgba(124,58,237,0.08)', fillOpacity: 1, dashArray: '8,6'
+    }).addTo(map);
+  }
+  drawRadius(CENTER[0], CENTER[1], currentRadius);
+
+  // Render food markers & list
+  function renderFood(data) {
+    markers.forEach(m => map.removeLayer(m.mk));
+    markers = [];
+    document.getElementById('foodList').innerHTML = '';
+    document.getElementById('foodCount').textContent = data.length;
+
+    data.forEach(f => {
+      const mk = L.marker([f.lat, f.lng], { icon: makeIcon(f.emoji, f.live) })
+        .addTo(map)
+        .bindPopup(buildPopup(f), { maxWidth: 280 });
+      mk.on('click', () => showDetail(f));
+      markers.push({ id: f.id, mk });
+
+      // List card
+      const card = document.createElement('div');
+      card.className = 'map-food-card';
+      card.id = 'fc-' + f.id;
+      card.innerHTML = `
+        <div class="map-food-header">
+          <div class="map-food-emoji">${f.emoji}</div>
+          <div>
+            <div class="map-food-name">${f.name}</div>
+            <div class="map-food-donor">by ${f.donor}</div>
+          </div>
+        </div>
+        <div class="map-food-tags">
+          ${f.free ? '<span class="badge badge-free">FREE</span>' : `<span class="badge badge-paid">₹${f.price}</span>`}
+          ${f.live ? '<span class="live-badge"><span class="live-dot"></span>Live</span>' : ''}
+          <span class="badge badge-cyan">${f.type}</span>
+        </div>
+        <div class="map-food-footer">
+          <div class="dist-badge"><i class="fa-solid fa-location-dot" style="color:var(--rose-light)"></i>${f.dist}km away</div>
+          <div class="stars" style="font-size:0.7rem">${'★'.repeat(Math.floor(f.rating))} <span style="color:var(--text-muted)">${f.rating}</span></div>
+        </div>`;
+      card.onclick = () => { showDetail(f); map.setView([f.lat, f.lng], 15); };
+      document.getElementById('foodList').appendChild(card);
+    });
+  }
+  renderFood(MOCK_DONATIONS);
+
+  function buildPopup(f) {
+    return `<div style="font-family:'Outfit',sans-serif;padding:4px">
+      <div style="font-size:1.5rem;text-align:center;margin-bottom:8px">${f.emoji}</div>
+      <div style="font-weight:800;font-size:1rem;margin-bottom:4px">${f.name}</div>
+      <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:8px">by ${f.donor} · ${f.dist}km away</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+        ${f.free ? '<span style="background:rgba(16,185,129,0.2);color:#34d399;padding:2px 8px;border-radius:99px;font-size:0.7rem;font-weight:700">FREE</span>' : `<span style="background:rgba(245,158,11,0.2);color:#fcd34d;padding:2px 8px;border-radius:99px;font-size:0.7rem;font-weight:700">₹${f.price}</span>`}
+        ${f.live ? '<span style="background:rgba(16,185,129,0.15);color:#34d399;padding:2px 8px;border-radius:99px;font-size:0.7rem;font-weight:600">● LIVE</span>' : ''}
+      </div>
+      <div style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px"><strong style="color:#f1f5f9">📦</strong> ${f.qty}</div>
+      <div style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px"><strong style="color:#f1f5f9">⏰</strong> Exp: ${f.exp}</div>
+      <div style="font-size:0.78rem;color:#94a3b8;margin-bottom:12px"><strong style="color:#f1f5f9">📍</strong> ${f.address}</div>
+      <button onclick="callDonor('${f.phone}')" style="width:100%;padding:8px;background:linear-gradient(135deg,#7c3aed,#f43f5e);border:none;border-radius:8px;color:white;font-weight:700;font-size:0.8rem;cursor:pointer;font-family:'Outfit',sans-serif">
+        📞 Contact & Navigate
+      </button>
+    </div>`;
+  }
+
+  function showDetail(f) {
+    selectedId = f.id;
+    document.querySelectorAll('.map-food-card').forEach(c => c.classList.remove('active'));
+    const card = document.getElementById('fc-' + f.id);
+    if (card) { card.classList.add('active'); card.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+
+    const panel = document.getElementById('detailPanel');
+    document.getElementById('detailContent').innerHTML = `
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+        <div style="font-size:3rem">${f.emoji}</div>
+        <div>
+          <h2 style="font-family:var(--font-main);font-size:1.3rem;font-weight:800;margin-bottom:4px">${f.name}</h2>
+          <div style="color:var(--text-secondary);font-size:0.875rem">by <strong>${f.donor}</strong></div>
+          <div class="stars" style="margin-top:4px">${'<i class="fa-solid fa-star"></i>'.repeat(Math.floor(f.rating))}<span style="color:var(--text-muted);font-size:0.8rem;margin-left:4px">${f.rating}</span></div>
+        </div>
+        <button onclick="closeDetail()" style="margin-left:auto;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-secondary);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:0.9rem">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
+        <div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-md);padding:12px;text-align:center">
+          <div style="font-size:1.2rem;margin-bottom:4px">📦</div>
+          <div style="font-size:0.75rem;color:var(--text-muted)">Quantity</div>
+          <div style="font-weight:700;font-size:0.8rem">${f.qty}</div>
+        </div>
+        <div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-md);padding:12px;text-align:center">
+          <div style="font-size:1.2rem;margin-bottom:4px">⏰</div>
+          <div style="font-size:0.75rem;color:var(--text-muted)">Expires</div>
+          <div style="font-weight:700;font-size:0.8rem">${f.exp}</div>
+        </div>
+        <div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-md);padding:12px;text-align:center">
+          <div style="font-size:1.2rem;margin-bottom:4px">📍</div>
+          <div style="font-size:0.75rem;color:var(--text-muted)">Distance</div>
+          <div style="font-weight:700;font-size:0.8rem;color:var(--emerald-light)">${f.dist}km</div>
+        </div>
+      </div>
+      <div style="margin-bottom:16px;font-size:0.875rem;color:var(--text-secondary)">
+        <i class="fa-solid fa-location-dot" style="color:var(--rose-light)"></i> ${f.address}
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="callDonor('${f.phone}')" class="btn btn-primary" style="flex:1;justify-content:center">
+          <i class="fa-solid fa-phone"></i> Call Donor
+        </button>
+        <button onclick="navigateTo(${f.lat},${f.lng})" class="btn btn-emerald" style="flex:1;justify-content:center">
+          <i class="fa-solid fa-route"></i> Navigate
+        </button>
+        ${!f.free ? `<button onclick="payForFood(${f.price})" class="btn btn-ghost" style="flex:1;justify-content:center"><i class="fa-solid fa-wallet"></i> Pay ₹${f.price}</button>` : ''}
+      </div>`;
+    panel.classList.add('open');
+  }
+
+  function closeDetail() {
+    document.getElementById('detailPanel').classList.remove('open');
+  }
+
+  function callDonor(phone) {
+    showToast(`Calling ${phone}...`, 'info');
+    window.open('tel:' + phone.replace(/\s/g,''));
+  }
+
+  function navigateTo(lat, lng) {
+    showToast('Opening navigation...', 'success');
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
+  }
+
+  function payForFood(price) {
+    showToast(`Opening payment for ₹${price}...`, 'info');
+  }
+
+  // Filter by type
+  function filterType(btn, type) {
+    document.querySelectorAll('.map-control-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeType = type;
+    applyFilters();
+  }
+
+  function filterFoodList(query) { applyFilters(query); }
+
+  function applyFilters(query = '') {
+    let data = MOCK_DONATIONS;
+    if (activeType !== 'all') {
+      if (activeType === 'free') data = data.filter(f => f.free);
+      else if (activeType === 'paid') data = data.filter(f => !f.free);
+      else if (activeType === 'live') data = data.filter(f => f.live);
+      else data = data.filter(f => f.type === activeType);
+    }
+    if (query) data = data.filter(f => f.name.toLowerCase().includes(query.toLowerCase()) || f.donor.toLowerCase().includes(query.toLowerCase()));
+    renderFood(data);
+  }
+
+  // Radius control
+  function setRadius(km) {
+    currentRadius = km * 1000;
+    document.getElementById('radiusLabel').textContent = `Searching within ${km}km radius`;
+    drawRadius(CENTER[0], CENTER[1], currentRadius);
+    document.querySelectorAll('.map-overlay-btn').forEach(b => { if(b.textContent.includes('km')) b.classList.remove('active'); });
+    event.target.classList.add('active');
+    showToast(`Radius set to ${km}km`, 'info');
+  }
+
+  // Live tracking
+  let trackInterval = null;
+  let isTracking = false;
+  function toggleLiveTrack() {
+    isTracking = !isTracking;
+    const btn = document.getElementById('liveBtn');
+    if (isTracking) {
+      btn.classList.add('active');
+      btn.innerHTML = '<span class="live-dot"></span> Tracking Live';
+      showToast('Live location tracking enabled', 'success');
+      getLocation((err, coords) => {
+        if (err) { showToast('Location access denied', 'error'); isTracking = false; btn.classList.remove('active'); return; }
+        placeUserMarker(coords.latitude, coords.longitude);
+        drawRadius(coords.latitude, coords.longitude, currentRadius);
+        map.setView([coords.latitude, coords.longitude], 14);
+        trackInterval = setInterval(() => {
+          getLocation((e, c) => { if (!e) placeUserMarker(c.latitude, c.longitude); });
+        }, 5000);
+      });
+    } else {
+      btn.classList.remove('active');
+      btn.innerHTML = '<span class="live-dot"></span> Live Track Me';
+      if (trackInterval) clearInterval(trackInterval);
+      showToast('Live tracking stopped', 'info');
+    }
+  }
+
+  function placeUserMarker(lat, lng) {
+    if (userMarker) map.removeLayer(userMarker);
+    userMarker = L.marker([lat, lng], { icon: makeUserIcon() })
+      .addTo(map).bindPopup('<strong>📍 You are here</strong>');
+  }
+</script>
+</body>
+</html>
